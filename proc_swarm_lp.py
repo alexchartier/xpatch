@@ -1,0 +1,211 @@
+#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
+"""
+proc_swarm_lp.py
+Script to process the SWARM langmuir probe data and analyse for patches. 
+"""
+from spacepy import pycdf
+import pdb
+import numpy as np
+import scipy as sp
+import datetime as dt
+import matplotlib.pyplot as plt
+import glob
+import pickle
+import sys 
+import collections
+sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
+import physics
+
+
+
+def main():
+    # ipath = '/Volumes/Seagate/data/swarm/lp/'
+    opath = './proc_lp/'
+    ipath = './swarm_lp/'
+    time = dt.datetime(2016, 1, 1)
+    step = dt.timedelta(days=1)
+    endtime = dt.datetime(2017, 1, 1)
+    cutoff_crd = 'geo'
+    while time < endtime: 
+        timestr = time.strftime('%Y-%m-%d')
+        print(timestr)
+        sats = 'A', 'B', 'C'
+        vals = {}
+        patch_ct = {}    
+
+        for sat in sats:
+            print('\nSatellite %s' % sat)
+            fname_format = ipath + 'SW_OPER_EFI%s' % sat + '_PL*%Y%m%d*.cdf' 
+            try:
+                fname = glob.glob(time.strftime(fname_format))[0]
+                vals[sat] = load_lp(fname)
+                vals[sat]['lt'] = localtime(vals[sat])
+                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd)
+            except:
+                print('No file for satellite %s on %s' % (sat, timestr))
+
+        fout = opath + cutoff_crd + time.strftime('/lp_%Y%m%d.pkl')
+        with open(fout, 'wb') as f:
+            pickle.dump(patch_ct, f) 
+        print('Saving %s' % fout)
+        time += dt.timedelta(days=1)
+
+
+def count_patches(vals, lat_cutoff=55, window_sec=200, min_time_sec=10, cadence_sec=0.5, rel_mag_cutoff=2, cutoff_crd='mag'):
+    # Count the patches from Langmuir probe data
+    # Patch = 2x background density (defined by ne_fac) over 78 < d < 1560 km. Translates to 10 < t < 200s
+    window = dt.timedelta(seconds=window_sec)  
+    cadence = dt.timedelta(seconds=cadence_sec) 
+
+    # Transform lats/lons to magnetic 
+    vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'] * np.pi / 180, \
+                          vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
+    vals['lat_mag'] *= 180 / np.pi
+    vals['lon_mag'] *= 180 / np.pi
+        
+    # add random lowlevel noise to the ne_vals to compensate for their low numerical precision for the filter
+    vals['ne'] += (np.random.rand(len(vals['ne'])) - 0.5) * 1E-5
+
+    # Reject low-latitude data
+    index = (np.abs(vals['lat_' + cutoff_crd]) > lat_cutoff)
+    for key, val in vals.items():  
+        vals[key] = vals[key][index]
+
+    # Initialise data storage dictionary
+    patch_ct = {}
+    for key, val in vals.items():
+        patch_ct[key] = []
+    patch_ct['ne_bg'] = []
+
+    # Convert times to integers for faster execution (datetime comparisons are slow)
+    times_sec = np.array([(t - vals['times'][0]).total_seconds() for t in vals['times']])
+    # Sliding window filtering
+    tind = -1
+    while tind < len(vals['times']) - window / cadence:
+        # NOTES FOR PUBLICATION: 
+        #   Not clear if Noja et al. skipped forward if they found a patch within the window. Assume they did
+        #   What happens if there are less than max. points available in a segment? We throw the segment out.
+        tind += 1  # Has to happen at the top because we use 'continue' to escape the loop at various points
+        t = times_sec[tind]
+        sys.stdout.write("Time in seconds %s \r" % t)
+        ind = np.logical_and(times_sec >= t, times_sec <= t + window_sec)
+        sumind = ind.sum()
+        # Require full window
+        if sumind < window / cadence:  
+            # print('Incomplete window found at %s' % t)
+            tind += sumind
+            continue
+        
+        times = vals['times'][ind]
+        ne_vals = vals['ne'][ind]
+        mag_lats = vals['lat_mag'][ind]
+        grads = np.diff(ne_vals)
+
+        # Check window does not cut across a hemispheric boundary
+        lat_steps = np.diff(mag_lats)
+        if lat_steps.max() > lat_cutoff:
+            print('Found hemispheric jump at %s' % t)
+            continue
+            
+        # Algorithm requires a positive gradient ...
+        if grads.max() <= 0:
+            continue
+        pos_ind = np.argmax(grads >= 0)
+        # ... followed by a negative gradient
+        if grads[pos_ind:].min() >= 0:
+            continue
+
+        NEp = ne_vals.max()  # Patch maximum is the highest value in the window
+        ind_NEp = np.where(ne_vals == NEp)[0][0]
+        
+        # The next part won't work if the first/last value is the largest
+        if (ind_NEp == 0) or (ind_NEp == len(ne_vals) - 1):
+            continue
+
+        # Define the two boundary values: b1 - greater of the two minimum values either side
+        #                                 b2 - closest value on other side to b1     
+        lhs = ne_vals[:ind_NEp]
+        rhs = ne_vals[ind_NEp + 1:]
+        NE_b1 = max([np.min(lhs), np.min(rhs)])
+        if NE_b1 in lhs:
+            NE_b2 = rhs[(np.abs(rhs - NE_b1)).argmin()]
+        else:
+            NE_b2 = lhs[(np.abs(lhs - NE_b1)).argmin()]
+
+        # Determine background NE: Symmetric linear interpolation of values to location of the peak
+        ind_NE_b1 = np.where(ne_vals == NE_b1)[0][0]
+        ind_NE_b2 = np.where(ne_vals == NE_b2)[0][0]
+        assert (ind_NE_b1 > ind_NEp) ^ (ind_NE_b2 > ind_NEp), 'Background indices should be either side of peak'
+        time_b1 = (times[ind_NE_b1] - times.min()).seconds
+        time_b2 = (times[ind_NE_b2] - times.min()).seconds
+        time_p = (times[ind_NEp] - times.min()).seconds
+    
+        # Interpolate background values to location of patch    
+        try:
+            NEbg = sp.interpolate.interp1d([time_b1, time_b2], [NE_b1, NE_b2])(time_p).tolist()
+        except:
+            pdb.set_trace()
+    
+        # Perform relative magnitude test
+        if NEp / NEbg < rel_mag_cutoff:
+            continue
+        
+        if abs(time_b1 - time_b2) < min_time_sec:
+            print('found short isolated spike')
+            continue
+
+        # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
+        patch_index = vals['ne'] == NEp
+        assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
+        for key, var in vals.items():
+            patch_ct[key].append(vals[key][patch_index])
+        patch_ct['ne_bg'].append(NEbg)
+        # print('\nFound a patch')
+        tind += sumind
+
+    patch_ct['params'] = {'lat_cutoff': lat_cutoff,
+                      'rel_mag_cutoff': rel_mag_cutoff,
+                          'window_sec': window_sec,
+                        'min_time_sec': min_time_sec,
+                         'cadence_sec': cadence_sec}
+    return patch_ct
+
+
+def load_lp(fname):
+    """
+    Load the Swarm langmuir probe data
+    """ 
+    cdf = pycdf.CDF(fname)
+    vars = {'Latitude': 'lat_geo',   # Geographic latitude
+            'Longitude': 'lon_geo',  # geographic longitude
+            'Radius': 'rad',  # Radial distance
+            'n': 'ne',  # Electron density
+            'Timestamp': 'times',  # Datetime times
+            }
+    vals = {}
+    for key, val in vars.items():
+       vals[val] = cdf[key][...]
+
+    return vals
+
+
+def localtime(vals):
+    """
+    Calculate local time of the Swarm satellites
+    """
+    outvals = {}
+    utsec = np.array([(t - dt.datetime(t.year, t.month, t.day)).total_seconds() for t in vals['times']])
+    lt = utsec / 3600 + vals['lon_geo'] / 360 * 24 
+    lt[lt > 24] -= 24
+    lt[lt < 0] += 24
+    return lt 
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
+
+
