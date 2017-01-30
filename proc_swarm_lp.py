@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
+#!/usr/local/bin/python3
 """
 proc_swarm_lp.py
 Script to process the SWARM langmuir probe data and analyse for patches. 
@@ -17,15 +17,13 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 
 
-
 def main():
-    # ipath = '/Volumes/Seagate/data/swarm/lp/'
-    opath = './proc_lp/'
-    ipath = './swarm_lp/'
+    ipath = '/Volumes/Seagate/data/swarm/lp/'
+    opath = '/Volumes/Seagate/data/swarm/proc_lp/'
     time = dt.datetime(2016, 1, 1)
     step = dt.timedelta(days=1)
     endtime = dt.datetime(2017, 1, 1)
-    cutoff_crd = 'geo'
+    cutoff_crd = 'mag'
     while time < endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)

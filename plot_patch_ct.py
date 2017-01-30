@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
+#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
 """
 plot_patch_ct.py
 Script to plot the output of the SWARM upward-looking TEC patch counter
@@ -15,8 +15,7 @@ endtime = dt.datetime(2016, 12, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
 cutoff_crd = 'geo'
-#fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
-fin = './proc_lp/%s/lp_%Y%m%d.pkl' % cutoff_crd
+fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
 
 
 def main():
@@ -32,6 +31,7 @@ def main():
                 try:
                     for key, val in count[sat].items():
                         if key != 'params':
+                            pdb.set_trace()
                             patch_ct[sat][key] = patch_ct[sat][key] + val
                 except:
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
