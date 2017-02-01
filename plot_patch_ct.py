@@ -1,7 +1,7 @@
 #!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
 """
 plot_patch_ct.py
-Script to plot the output of the SWARM upward-looking TEC patch counter
+Script to plot the output of the SWARM patch counter (either TEC or LP)
 """
 import pdb
 import matplotlib.pyplot as plt
@@ -15,8 +15,7 @@ endtime = dt.datetime(2016, 12, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
 cutoff_crd = 'geo'
-#fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
-fin = './proc_lp/%s/lp_%Y%m%d.pkl' % cutoff_crd
+fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
 
 
 def main():
