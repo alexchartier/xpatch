@@ -59,7 +59,7 @@ def main():
         time += dt.timedelta(days=1)
 
 
-def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=10):
+def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=1):
     """
     Counts the patches in each SWARM file
 
