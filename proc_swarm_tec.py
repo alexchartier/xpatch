@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.4/bin/python3
+#!/usr/local/bin/python3
 """
 proc_swarm_tec.py
 Script to process the SWARM upward-looking TEC data and analyse for patches. 
@@ -30,10 +30,10 @@ import physics
 
 def main():
     ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
-    opath = '/Volumes/Seagate/data/swarm/lt/'
-    time = dt.datetime(2014, 10, 20)
+    opath = '/Volumes/Seagate/data/swarm/proc/'
+    time = dt.datetime(2016, 1, 1)
     step = dt.timedelta(days=1)
-    endtime = dt.datetime(2014, 12, 31)
+    endtime = dt.datetime(2016, 12, 31)
     
     while time < endtime: 
         timestr = time.strftime('%Y-%m-%d')
@@ -48,14 +48,16 @@ def main():
             fname_format = ipath + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.DBL'
             try:
                 fname = glob.glob(time.strftime(fname_format))[0]
-                patch_ct[sat] = count_patches(fname)
             except:
                 print('No file for satellite %s on %s' % (sat, timestr))
-        fout = opath + time.strftime('lt_%Y%m%d.pkl')
+                continue
+            patch_ct[sat] = count_patches(fname)
+        fout = opath + time.strftime('patch_ct_%Y%m%d.pkl')
         with open(fout, 'wb') as f:
             pickle.dump(patch_ct, f) 
         print('Saving %s' % fout)
         time += dt.timedelta(days=1)
+
 
 def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=10):
     """
@@ -75,7 +77,7 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
     """ 
     window = dt.timedelta(seconds=window_sec)  
     cadence = dt.timedelta(seconds=cadence_sec) 
-    vals = load_swarm(fname)
+    vals, vars = load_swarm(fname)
     # Preliminary calculations
     rad = np.sqrt(np.sum(vals['leo_pos'] ** 2, axis=1))
     vals['lat_mag'], vals['lon_mag'] = physics.transform(rad, vals['lat_geo'] * np.pi / 180, \
@@ -106,6 +108,11 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
         for key, val in vars.items():
             vals_p[p][val] = vals[val][index]
 
+        # Problem with duplicate values in SWARM data. This will fix the problems it causes.
+        if len(set(vals_p[p]['tec'])) < len(vals_p[p]['tec']):
+            print('Found duplicates in TEC data')
+            vals_p[p]['tec'] += np.random.randn(len(vals_p[p]['tec'])) * 1E-9
+
         # Sliding window filtering
         tind = 0
         while tind < len(vals_p[p]['times']) - window / cadence:
@@ -118,24 +125,17 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
             ind = np.logical_and(vals_p[p]['times'] >= t, vals_p[p]['times'] <= t + window)
             if sum(ind) < window / cadence:  # Require full window
                 continue
+
             times = vals_p[p]['times'][ind]
             tec_vals = vals_p[p]['tec'][ind]
             grads = np.diff(tec_vals)
-            mag_lats = vals['lat_mag'][ind]
-
-            # Problem with duplicate values in SWARM data. This will fix the problems it causes.
-            duplicates = [tec_val for tec_val, count in collections.Counter(tec_vals).items() if count > 1]
-            for duplicate in duplicates:
-                print('Found duplicate TEC value in PRN %s on %s' % (p, t))
-                tec_vals[np.argmax(tec_vals == duplicate)] += 1E-9
-                vals_p[p]['tec'][np.argmax(vals_p[p]['tec'] == duplicate)] += 1E-9
+            mag_lats = vals_p[p]['lat_mag'][ind]
 
             # Check window does not cut across a hemispheric boundary
             lat_steps = np.diff(mag_lats)
             if lat_steps.max() > lat_cutoff:
                 print('Found hemispheric jump at %s' % t)
-                vals['times'].index(times[lat_steps == lat_steps.max()])
-                pdb.set_trace()
+                # vals['times'].tolist().index(times[lat_steps == lat_steps.max()][0])
                 # tind += 
                 continue
 
@@ -199,6 +199,7 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
                          'cadence_sec': cadence_sec}
     return patch_ct
 
+
 def load_swarm(fname):
     cdf = pycdf.CDF(fname)
     vars = {'Latitude': 'lat_geo',   # Geographic latitude
@@ -212,7 +213,7 @@ def load_swarm(fname):
     for key, val in vars.items():
        vals[val] = cdf[key][...]
 
-    return vals
+    return vals, vars
 
 
 def localtime(fname):
