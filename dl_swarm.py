@@ -1,4 +1,4 @@
-#!/Library/Frameworks/Python.framework/Versions/3.6/bin/python3
+#!/usr/env/bin/python3
 """ 
 dl_swarm.py
 Script to download and preprocess the SWARM GPS TEC data
@@ -16,10 +16,11 @@ cwd = os.getcwd()
 sys.path.append(cwd + '/../fusionpp/glimpse/')
 import downloader
 
-servername = 'swarm_lp.txt'
+servername = 'data/swarm_lp.txt'
 dl_times = [datetime.datetime(2015, 12, 20), datetime.datetime(2015, 12, 20)]
-dl_dir = '/Volumes/Seagate/data/swarm/lp/'
-# dl_dir = '~/xpatch/swarm_lp/'
+# dl_dir = '/Volumes/Seagate/data/swarm/lp/'
+dl_dir = '~/xpatch/data/swarm_lp/'
+
 dl_days = downloader.dl_data(dl_times, dl_dir, servername, datatype='swarm', dirnames='not_smart')
 
 

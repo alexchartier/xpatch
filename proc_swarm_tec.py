@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 """
-proc_swarm.py
-Script to process the SWARM data and analyse for patches. 
+proc_swarm_tec.py
+Script to process the SWARM upward-looking TEC data and analyse for patches. 
 This is intended to follow the method of Noja et al. [2013]
 No slant-to-vertical conversion (justified in the paper)
 Elevation cutoff: 25 degrees
