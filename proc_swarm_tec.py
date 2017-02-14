@@ -31,11 +31,11 @@ import physics
 def main():
     ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
     opath = '/Volumes/Seagate/data/swarm/proc/'
-    time = dt.datetime(2016, 1, 1)
+    time = dt.datetime(2016, 12, 31)
     step = dt.timedelta(days=1)
     endtime = dt.datetime(2016, 12, 31)
     
-    while time < endtime: 
+    while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
         # sys.stdout.write("%s\r" % timestr) 
