@@ -37,8 +37,26 @@ def main():
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
 
+    plot_utmlt(patch_ct)
     plot_polar(patch_ct)
     plot_hist(patch_ct)
+
+
+def plot_utmlt(patch_ct):
+    sats = [s for s in patch_ct.keys()]
+    sats.sort()
+    ct = 0  
+    for sat in sats:
+        mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
+        mlon[mlon < 0] += 2 * np.pi
+        time = {}
+        time['ut'] = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+        time['mlt'] = time['ut'] + mlon * 24 / 360
+        time['mlt'][time['mlt'] > 24] -= 24
+
+        for hem in hems:
+            ct += 1
+            plt.subplot(len(satellites), 2, ct)
 
 
 def plot_hist(patch_ct):
@@ -65,7 +83,6 @@ def plot_hist(patch_ct):
             else:
                 frame.axes.xaxis.set_ticklabels([])
     plt.show()
-
 
 def plot_polar(patch_ct):
     sats = [s for s in patch_ct.keys()]
