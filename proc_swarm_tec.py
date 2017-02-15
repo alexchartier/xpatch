@@ -31,11 +31,11 @@ import physics
 def main():
     ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
     opath = '/Volumes/Seagate/data/swarm/proc/'
-    time = dt.datetime(2016, 1, 1)
+    time = dt.datetime(2016, 12, 31)
     step = dt.timedelta(days=1)
     endtime = dt.datetime(2016, 12, 31)
     
-    while time < endtime: 
+    while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
         # sys.stdout.write("%s\r" % timestr) 
@@ -59,7 +59,7 @@ def main():
         time += dt.timedelta(days=1)
 
 
-def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=10):
+def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=1):
     """
     Counts the patches in each SWARM file
 

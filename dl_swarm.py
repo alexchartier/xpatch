@@ -1,7 +1,7 @@
 #!/usr/env/bin/python3
 """ 
 dl_swarm.py
-Script to download and preprocess the SWARM GPS TEC data
+Script to download and preprocess the SWARM GPS TEC data/LP data
 Swarm provides a Level-2 TEC product, handily preprocessed and ready for use. 
 The files come as .ZIP, which contains a .DBL that is actually a CDF file
 Details here:
@@ -16,10 +16,10 @@ cwd = os.getcwd()
 sys.path.append(cwd + '/../fusionpp/glimpse/')
 import downloader
 
-servername = 'data/swarm_lp.txt'
-dl_times = [datetime.datetime(2015, 12, 20), datetime.datetime(2015, 12, 20)]
-# dl_dir = '/Volumes/Seagate/data/swarm/lp/'
-dl_dir = '~/xpatch/data/swarm_lp/'
+servername = 'data/swarm_server_names.txt'
+dl_times = [datetime.datetime(2014, 1, 1), datetime.datetime(2014, 12, 31)]
+dl_dir = '/Volumes/Seagate/data/swarm/gps_tec/2014'
+# dl_dir = '~/xpatch/data/swarm_lp/'
 
 dl_days = downloader.dl_data(dl_times, dl_dir, servername, datatype='swarm', dirnames='not_smart')
 

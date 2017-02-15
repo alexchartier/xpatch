@@ -15,8 +15,8 @@ endtime = dt.datetime(2016, 12, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
 cutoff_crd = 'geo'
-fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
-#fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
+#fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
+fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
 
 
 def main():
@@ -32,14 +32,31 @@ def main():
                 try:
                     for key, val in count[sat].items():
                         if key != 'params':
-                            pdb.set_trace()
                             patch_ct[sat][key] = patch_ct[sat][key] + val
                 except:
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
 
-    # plot_polar(patch_ct)
+    plot_utmlt(patch_ct)
+    plot_polar(patch_ct)
     plot_hist(patch_ct)
+
+
+def plot_utmlt(patch_ct):
+    sats = [s for s in patch_ct.keys()]
+    sats.sort()
+    ct = 0  
+    for sat in sats:
+        mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
+        mlon[mlon < 0] += 2 * np.pi
+        time = {}
+        time['ut'] = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+        time['mlt'] = time['ut'] + mlon * 24 / 360
+        time['mlt'][time['mlt'] > 24] -= 24
+
+        for hem in hems:
+            ct += 1
+            plt.subplot(len(satellites), 2, ct)
 
 
 def plot_hist(patch_ct):
@@ -59,14 +76,13 @@ def plot_hist(patch_ct):
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
             plt.ylabel('Patch count')
             frame = plt.gca()
-            plt.ylim(0, 300)
+            plt.ylim(0, 150)
             plt.xlim(min(doy), max(doy))
             if ct >= 5:
                 plt.xlabel('Day of year')
             else:
                 frame.axes.xaxis.set_ticklabels([])
     plt.show()
-
 
 def plot_polar(patch_ct):
     sats = [s for s in patch_ct.keys()]
