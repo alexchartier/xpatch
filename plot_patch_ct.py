@@ -9,14 +9,27 @@ import pickle
 import collections
 import datetime as dt
 import numpy as np
+import socket
 
 starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2016, 12, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
-cutoff_crd = 'geo'
-#fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
-fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
+cutoff_crd = 'mag'
+instrument = 'Langmuir Probe'  # or 'GPS'
+
+# Langmuir Probe
+if instrument is 'Langmuir Probe':
+    fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
+
+elif instrument is 'GPS':
+    if socket.gethostname() == 'chartat1-ml2':
+        # Work GPS
+        fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
+
+    elif socket.gethostname() == 'chartat1-ml2':
+        # Home GPS
+        fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
 
 def main():
@@ -37,26 +50,71 @@ def main():
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
 
-    plot_utmlt(patch_ct)
-    plot_polar(patch_ct)
-    plot_hist(patch_ct)
+    plot_oneday_timeseries(patch_ct)
+    plot_utmlt(patch_ct, plot_type='MLT')
+    plot_utmlt(patch_ct, plot_type='UT')
+    #plot_polar(patch_ct)
+    #plot_hist(patch_ct)
 
 
-def plot_utmlt(patch_ct):
+def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16, 37, 30), \
+                                               stop=dt.datetime(2015, 12, 20, 16, 55)):
+    ut = np.array([t[0] for t in patch_ct[sat]['times']])
+    pdb.set_trace()
+    timeind = (ut > start) and (ut < stop)
+    ne = patch_ct[sat]['n'][timeind]
+    ne_err = patch_ct[sat]['n_error'][timeind]
+    ut = ut[timeind]
+    pdb.set_trace() 
+
+def plot_utmlt(patch_ct, plot_type='UT'):
     sats = [s for s in patch_ct.keys()]
     sats.sort()
+    nbins = 24
     ct = 0  
     for sat in sats:
         mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
         mlon[mlon < 0] += 2 * np.pi
         time = {}
-        time['ut'] = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
-        time['mlt'] = time['ut'] + mlon * 24 / 360
-        time['mlt'][time['mlt'] > 24] -= 24
+        ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+        mlt = ut + mlon * 24 / 360
+        mlt[mlt > 24] -= 24
+        mlt[mlt < 0] += 24
 
+        sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
+        nh_ind = sat_lats > 0
+        sh_ind = sat_lats < 0
+        hems = 'north', 'south'
         for hem in hems:
             ct += 1
             plt.subplot(len(satellites), 2, ct)
+            plt.xlim(0, 24)
+            if instrument is 'GPS':
+                plt.ylim(0, 800)
+            else:
+                plt.ylim(0, 600)
+            if plot_type is 'UT':
+                ut_h = ut[nh_ind] if hem is 'north' else ut[sh_ind]
+                plt.hist(ut_h, bins=nbins)
+            else:
+                mlt_h = mlt[nh_ind] if hem is 'north' else mlt[sh_ind]
+                n, bins, patches = plt.hist(mlt_h, bins=nbins)
+            if np.ceil(ct / 2) == len(sats):
+                plt.xlabel('%s Hour' % plot_type)
+            else:
+                plt.tick_params(
+                                axis='x',          # changes apply to the x-axis
+                                which='both',      # both major and minor ticks are affected
+                                bottom='off',      # ticks along the bottom edge are off
+                                top='off',         # ticks along the top edge are off
+                                labelbottom='off') # labels along the bottom edge are off
+            if np.mod(ct, 2) != 0:
+                plt.ylabel('Patch count')
+            plt.title('Satellite %s %s hemisphere' % (sat, hem))
+
+    plt.suptitle(instrument, fontweight='bold')
+    plt.show()
+                
 
 
 def plot_hist(patch_ct):
@@ -83,6 +141,7 @@ def plot_hist(patch_ct):
             else:
                 frame.axes.xaxis.set_ticklabels([])
     plt.show()
+
 
 def plot_polar(patch_ct):
     sats = [s for s in patch_ct.keys()]

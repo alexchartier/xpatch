@@ -17,19 +17,22 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 
 
-def main():
-    ipath = './data/swarm_lp/'
-    opath = './data/proc_lp/'
+def main(ipath='./data/swarm_lp/',
+         opath='./data/proc_lp/', 
+         time=dt.datetime(2016, 1, 1),
+         step=dt.timedelta(days=1),
+         endtime=dt.datetime(2017, 1, 1),
+         cutoff_crd='mag',
+         lat_cutoff=70,
+         sats = ['A', 'B', 'C'],
+         save=True):
+    
     #ipath = '/Volumes/Seagate/data/swarm/lp/'
     #opath = '/Volumes/Seagate/data/swarm/proc_lp/'
-    time = dt.datetime(2016, 1, 1)
-    step = dt.timedelta(days=1)
-    endtime = dt.datetime(2017, 1, 1)
-    cutoff_crd = 'mag'
+
     while time < endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
-        sats = 'A', 'B', 'C'
         vals = {}
         patch_ct = {}    
 
@@ -40,25 +43,28 @@ def main():
                 fname = glob.glob(time.strftime(fname_format))[0]
                 vals[sat] = load_lp(fname)
                 vals[sat]['lt'] = localtime(vals[sat])
-                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd)
+                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
             except:
-                print('No file for satellite %s on %s' % (sat, timestr))
+                print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
-        fout = opath + cutoff_crd + time.strftime('/lp_%Y%m%d.pkl')
-        with open(fout, 'wb') as f:
-            pickle.dump(patch_ct, f) 
-        print('Saving %s' % fout)
+        if save:
+            fout = opath + cutoff_crd + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
+            with open(fout, 'wb') as f:
+                pickle.dump(patch_ct, f) 
+            print('Saving %s' % fout)
         time += dt.timedelta(days=1)
 
+    return patch_ct, vals
 
-def count_patches(vals, lat_cutoff=55, window_sec=200, min_time_sec=10, cadence_sec=0.5, rel_mag_cutoff=2, cutoff_crd='mag'):
+
+def count_patches(vals, lat_cutoff=70, window_sec=200, min_time_sec=10, cadence_sec=0.5, rel_mag_cutoff=2, cutoff_crd='mag'):
     # Count the patches from Langmuir probe data
     # Patch = 2x background density (defined by ne_fac) over 78 < d < 1560 km. Translates to 10 < t < 200s
     window = dt.timedelta(seconds=window_sec)  
     cadence = dt.timedelta(seconds=cadence_sec) 
 
     # Transform lats/lons to magnetic 
-    vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'] * np.pi / 180, \
+    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'] * np.pi / 180, \
                           vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
@@ -68,20 +74,24 @@ def count_patches(vals, lat_cutoff=55, window_sec=200, min_time_sec=10, cadence_
 
     # Reject low-latitude data
     index = (np.abs(vals['lat_' + cutoff_crd]) > lat_cutoff)
+    vals_ind = {}
     for key, val in vals.items():  
-        vals[key] = vals[key][index]
+        vals_ind[key] = vals[key][index]
 
     # Initialise data storage dictionary
     patch_ct = {}
-    for key, val in vals.items():
+    for key, val in vals_ind.items():
         patch_ct[key] = []
-    patch_ct['ne_bg'] = []
+
+    new_vars = 'ne_bg', 'ne_b1', 'ne_b2', 't1', 't2', 't_start', 't_end'
+    for v in new_vars:
+        patch_ct[v] = []
 
     # Convert times to integers for faster execution (datetime comparisons are slow)
-    times_sec = np.array([(t - vals['times'][0]).total_seconds() for t in vals['times']])
+    times_sec = np.array([(t - vals_ind['times'][0]).total_seconds() for t in vals_ind['times']])
     # Sliding window filtering
     tind = -1
-    while tind < len(vals['times']) - window / cadence:
+    while tind < len(vals_ind['times']) - window / cadence:
         # NOTES FOR PUBLICATION: 
         #   Not clear if Noja et al. skipped forward if they found a patch within the window. Assume they did
         #   What happens if there are less than max. points available in a segment? We throw the segment out.
@@ -96,9 +106,9 @@ def count_patches(vals, lat_cutoff=55, window_sec=200, min_time_sec=10, cadence_
             tind += sumind
             continue
         
-        times = vals['times'][ind]
-        ne_vals = vals['ne'][ind]
-        mag_lats = vals['lat_mag'][ind]
+        times = vals_ind['times'][ind]
+        ne_vals = vals_ind['ne'][ind]
+        mag_lats = vals_ind['lat_mag'][ind]
         grads = np.diff(ne_vals)
 
         # Check window does not cut across a hemispheric boundary
@@ -155,14 +165,23 @@ def count_patches(vals, lat_cutoff=55, window_sec=200, min_time_sec=10, cadence_
             continue
 
         # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
-        patch_index = vals['ne'] == NEp
+        patch_index = vals_ind['ne'] == NEp
         assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
-        for key, var in vals.items():
-            patch_ct[key].append(vals[key][patch_index])
+        for key, var in vals_ind.items():
+            patch_ct[key].append(vals_ind[key][patch_index])
         patch_ct['ne_bg'].append(NEbg)
+        patch_ct['ne_b1'].append(NE_b1)
+        patch_ct['ne_b2'].append(NE_b2)
+        patch_ct['t1'].append(times[ind_NE_b1])
+        patch_ct['t2'].append(times[ind_NE_b2])
+        patch_ct['t_start'].append(times.min())
+        patch_ct['t_end'].append(times.max())
         # print('\nFound a patch')
         tind += sumind
 
+    # newvars = 'ne_bg', 'ne_b1', 'ne_b2', 't1', 't2', 't_start', 't_end'
+    # for v in newvars:
+    #     patch_ct[v] = np.array(patch_ct[v])
     patch_ct['params'] = {'lat_cutoff': lat_cutoff,
                       'rel_mag_cutoff': rel_mag_cutoff,
                           'window_sec': window_sec,

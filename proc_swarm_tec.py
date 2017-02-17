@@ -27,10 +27,16 @@ import sys
 import collections
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
+import socket
 
 def main():
-    ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
-    opath = '/Volumes/Seagate/data/swarm/proc/'
+    if socket.gethostname() == 'chartat1-ml2':
+        ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
+        opath = '/Volumes/Seagate/data/swarm/proc/'
+    elif socket.gethostname() == 'chartat1-ml1':
+        ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
+        opath = '../gps_proc/'
+        
     time = dt.datetime(2016, 12, 31)
     step = dt.timedelta(days=1)
     endtime = dt.datetime(2016, 12, 31)
