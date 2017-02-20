@@ -2,7 +2,7 @@
 plot_timeseries.py
 Script to plot timeseries for comparison against the MIDAS contours
 """
-
+import glob
 import pdb 
 import matplotlib.pyplot as plt 
 import pickle
@@ -18,8 +18,9 @@ def main():
     starttime = dt.datetime(2015, 12, 20)
     endtime = dt.datetime(2015, 12, 21)
     sat = 'B'
-    instrument = 'Langmuir Probe'  # or 'GPS'
+    instrument = 'GPS'
     cutoff_crd = 'mag'
+    proc = False  # Run the preprocessing or just load the output
 
     # Langmuir Probe
     if instrument is 'Langmuir Probe':
@@ -27,10 +28,26 @@ def main():
         patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sat, save=False)
         plot_oneday_timeseries(patch_ct, vals) 
 
-    elif instrument is 'TEC':        
-        import proc_swarm_lp
-        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sat, save=False)
+    elif instrument is 'GPS':        
+        import proc_swarm_tec
+        if proc:
+            patch_ct, vals = proc_swarm_tec.main(time=starttime, endtime=endtime, sats=sat, save=False)
+        else:
+            fname_format = '/Volumes/Seagate/data/swarm/gps_tec/%Y/' + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.DBL'
+            fname = glob.glob(starttime.strftime(fname_format))[0]
+            vals = proc_swarm_tec.get_swarm_vals(fname)
+            with open(starttime.strftime('/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'), 'rb') as f:
+                patch_ct = pickle.load(f)
+            pdb.set_trace()
         plot_oneday_timeseries(patch_ct, vals) 
+        if socket.gethostname() == 'chartat1-ml2':
+            # Work GPS
+            fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
+
+        elif socket.gethostname() == 'chartat1-ml2':
+            # Home GPS
+            fin = './gps_proc/patch_ct_%Y%m%d.pkl'
+
 
 def plot_oneday_timeseries(patch_ct, vals, sat='B', \
                                            start=dt.datetime(2015, 12, 20, 16, 37, 30), \
