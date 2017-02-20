@@ -29,23 +29,24 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 import socket
 
-def main():
+def main(
+        time=dt.datetime(2016, 12, 31),
+        step=dt.timedelta(days=1),
+        endtime=dt.datetime(2016, 12, 31),
+        sats=['A', 'B', 'C'],
+        save=True,
+         ):
+
     if socket.gethostname() == 'chartat1-ml2':
         ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
         opath = '/Volumes/Seagate/data/swarm/proc/'
     elif socket.gethostname() == 'chartat1-ml1':
-        ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
-        opath = '../gps_proc/'
-        
-    time = dt.datetime(2016, 12, 31)
-    step = dt.timedelta(days=1)
-    endtime = dt.datetime(2016, 12, 31)
+        ipath = 'data/swarm_tec/'
+        opath = 'data/proc_gps/'
     
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
-        # sys.stdout.write("%s\r" % timestr) 
-        sats = 'A', 'B', 'C'
         patch_ct = {}
         vals = {}
 
@@ -57,12 +58,16 @@ def main():
             except:
                 print('No file for satellite %s on %s' % (sat, timestr))
                 continue
-            patch_ct[sat] = count_patches(fname)
-        fout = opath + time.strftime('patch_ct_%Y%m%d.pkl')
-        with open(fout, 'wb') as f:
-            pickle.dump(patch_ct, f) 
-        print('Saving %s' % fout)
+            patch_ct[sat], vals[sat] = count_patches(fname)
+        if save:
+            fout = opath + time.strftime('patch_ct_%Y%m%d.pkl')
+            with open(fout, 'wb') as f:
+                pickle.dump(patch_ct, f) 
+            print('Saving %s' % fout)
+
         time += dt.timedelta(days=1)
+
+    return patch_ct, vals
 
 
 def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=1):
@@ -86,7 +91,7 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
     vals, vars = load_swarm(fname)
     # Preliminary calculations
     rad = np.sqrt(np.sum(vals['leo_pos'] ** 2, axis=1))
-    vals['lat_mag'], vals['lon_mag'] = physics.transform(rad, vals['lat_geo'] * np.pi / 180, \
+    unused_alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(rad, vals['lat_geo'] * np.pi / 180, \
                           vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
@@ -203,7 +208,7 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
                       'TEC_rel_cutoff': TEC_rel_cutoff,
                           'window_sec': window_sec,
                          'cadence_sec': cadence_sec}
-    return patch_ct
+    return patch_ct, vals
 
 
 def load_swarm(fname):

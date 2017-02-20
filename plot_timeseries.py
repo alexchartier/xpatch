@@ -15,10 +15,10 @@ import socket
 
 
 def main():
-    starttime = dt.datetime(2015, 12, 20)
-    endtime = dt.datetime(2015, 12, 21)
+    starttime = dt.datetime(2016, 1, 20)
+    endtime = dt.datetime(2016, 1, 21)
     sat = 'B'
-    instrument = 'Langmuir Probe'  # or 'GPS'
+    instrument = 'TEC'  # or 'GPS'
     cutoff_crd = 'mag'
 
     # Langmuir Probe
@@ -28,13 +28,14 @@ def main():
         plot_oneday_timeseries(patch_ct, vals) 
 
     elif instrument is 'TEC':        
-        import proc_swarm_lp
-        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sat, save=False)
-        plot_oneday_timeseries(patch_ct, vals) 
+        import proc_swarm_tec
+        patch_ct, vals = proc_swarm_tec.main(time=starttime, endtime=endtime, sats=sat, save=False)
+        plot_oneday_timeseries(patch_ct, vals, start=starttime, stop=endtime) 
 
 def plot_oneday_timeseries(patch_ct, vals, sat='B', \
                                            start=dt.datetime(2015, 12, 20, 16, 37, 30), \
                                            stop=dt.datetime(2015, 12, 20, 16, 55)):
+    pdb.set_trace()
     ut = np.array([t for t in vals[sat]['times']])
     timeind = np.logical_and(ut > start, ut < stop)
     ne = vals[sat]['ne'][timeind]
@@ -55,6 +56,7 @@ def plot_oneday_timeseries(patch_ct, vals, sat='B', \
     plt.plot_date(utd, ne, 'b.', markersize=3)
 
     # plot peak Ne
+    pdb.set_trace()
     plt.plot(mdates.date2num(count['times'][0]), count['ne'], 'kx', markersize=10, mew=4)
 
     # plot vertical lines at start and end of window
