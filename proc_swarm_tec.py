@@ -41,13 +41,12 @@ def main(
         ipath = '/Volumes/Seagate/data/swarm/gps_tec/%Y/'
         opath = '/Volumes/Seagate/data/swarm/proc/'
     elif socket.gethostname() == 'chartat1-ml1':
-        ipath = './data/gps_tec/'
-        opath = './data/gps_proc/'
-        
+        ipath = 'data/swarm_tec/'
+        opath = 'data/proc_gps/'
+    
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
-        # sys.stdout.write("%s\r" % timestr) 
         patch_ct = {}
         vals = {}
 
@@ -59,13 +58,17 @@ def main(
             except:
                 print('No file for satellite %s on %s' % (sat, timestr))
                 continue
-            patch_ct[sat] = count_patches(fname)
-        fout = opath + time.strftime('patch_ct_%Y%m%d.pkl')
+            patch_ct[sat], vals[sat] = count_patches(fname)
+
         if save:
+            fout = opath + time.strftime('patch_ct_%Y%m%d.pkl')
             with open(fout, 'wb') as f:
                 pickle.dump(patch_ct, f) 
-        print('Saving %s' % fout)
+            print('Saving %s' % fout)
+
         time += dt.timedelta(days=1)
+
+    return patch_ct, vals
 
 
 def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_rel_cutoff=1.2, window_sec=200, cadence_sec=1):
@@ -99,7 +102,9 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
     patch_ct = {}
     for key, var in vars.items():
         patch_ct[var] = []
-    patch_ct['tec_bg'] = []
+    new_varnames = 'tec_bg', 'tec_b1', 'tec_b2', 't1', 't2'
+    for v in new_varnames:
+        patch_ct[v] = []
 
     for p in unique_prns:
         index = vals['prn'] == p
@@ -189,6 +194,10 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
             for key, var in vars.items():
                 patch_ct[var].append(vals_p[p][var][patch_index])
             patch_ct['tec_bg'].append(TECbg)
+            patch_ct['t1'].append(times[ind_TEC_b1])
+            patch_ct['t2'].append(times[ind_TEC_b2])
+            patch_ct['tec_b1'].append(TEC_b1)
+            patch_ct['tec_b2'].append(TEC_b2)
             tind += sum(ind)
 
     patch_ct['params'] = {'lat_cutoff': lat_cutoff,

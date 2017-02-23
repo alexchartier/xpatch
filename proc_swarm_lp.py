@@ -27,9 +27,6 @@ def main(ipath='./data/swarm_lp/',
          sats = ['A', 'B', 'C'],
          save=True):
     
-    #ipath = '/Volumes/Seagate/data/swarm/lp/'
-    #opath = '/Volumes/Seagate/data/swarm/proc_lp/'
-
     while time < endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
