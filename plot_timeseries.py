@@ -25,7 +25,6 @@ def main():
     # Langmuir Probe
     if instrument == 'Langmuir Probe':
         import proc_swarm_lp
-        pdb.set_trace()
         patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sats, save=False)
         plot_ne_timeseries(patch_ct, vals) 
 
@@ -126,7 +125,7 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
  
 def plot_ne_timeseries(patch_ct, vals, sat='B', \
                                         start=dt.datetime(2015, 12, 20, 16, 35), \
-                                           stop=dt.datetime(2015, 12, 20, 16, 59, 32)):
+                                           stop=dt.datetime(2015, 12, 20, 17, 5)):
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)
@@ -181,8 +180,8 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
 
     # plot magnetic latitude ticks
     ax2 = ax1.twiny()
-    new_tick_locations = utd[0:-1:int(len(utd) / 5)]
-    new_ticks = mlat[0:-1:int(len(utd) / 5)]
+    new_tick_locations = utd[0:-1:int(len(utd) / 4)]
+    new_ticks = mlat[0:-1:int(len(utd) / 4)]
     new_ticklabels = ['%2.1f' % t for t in new_ticks]
     ax2.set_xlim(ax1.get_xlim())
     ax2.set_xticks(new_tick_locations)

@@ -5,11 +5,15 @@ Script to plot the output of the SWARM patch counter (either TEC or LP)
 """
 import pdb
 import matplotlib.pyplot as plt
+from mpl_toolkits.basemap import Basemap
 import pickle
 import collections
 import datetime as dt
 import numpy as np
 import socket
+import sys
+sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
+import physics
 
 starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2016, 12, 31)
@@ -19,10 +23,10 @@ cutoff_crd = 'mag'
 instrument = 'Langmuir Probe'  # or 'GPS'
 
 # Langmuir Probe
-if instrument is 'Langmuir Probe':
-    fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
+if instrument == 'Langmuir Probe':
+    fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d_70deg.pkl'
 
-elif instrument is 'GPS':
+elif instrument == 'GPS':
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
         fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
@@ -50,17 +54,16 @@ def main():
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
 
-    plot_oneday_timeseries(patch_ct)
-    plot_utmlt(patch_ct, plot_type='MLT')
-    plot_utmlt(patch_ct, plot_type='UT')
-    #plot_polar(patch_ct)
-    #plot_hist(patch_ct)
+    # plot_oneday_timeseries(patch_ct)
+    # plot_utmlt(patch_ct, plot_type='MLT')
+    # plot_utmlt(patch_ct, plot_type='UT')
+    plot_polar(patch_ct)
+    # plot_hist(patch_ct)
 
 
 def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16, 37, 30), \
                                                stop=dt.datetime(2015, 12, 20, 16, 55)):
     ut = np.array([t[0] for t in patch_ct[sat]['times']])
-    pdb.set_trace()
     timeind = (ut > start) and (ut < stop)
     ne = patch_ct[sat]['n'][timeind]
     ne_err = patch_ct[sat]['n_error'][timeind]
@@ -89,15 +92,15 @@ def plot_utmlt(patch_ct, plot_type='UT'):
             ct += 1
             plt.subplot(len(satellites), 2, ct)
             plt.xlim(0, 24)
-            if instrument is 'GPS':
+            if instrument == 'GPS':
                 plt.ylim(0, 800)
             else:
                 plt.ylim(0, 600)
             if plot_type is 'UT':
-                ut_h = ut[nh_ind] if hem is 'north' else ut[sh_ind]
+                ut_h = ut[nh_ind] if hem == 'north' else ut[sh_ind]
                 plt.hist(ut_h, bins=nbins)
             else:
-                mlt_h = mlt[nh_ind] if hem is 'north' else mlt[sh_ind]
+                mlt_h = mlt[nh_ind] if hem == 'north' else mlt[sh_ind]
                 n, bins, patches = plt.hist(mlt_h, bins=nbins)
             if np.ceil(ct / 2) == len(sats):
                 plt.xlabel('%s Hour' % plot_type)
@@ -129,7 +132,7 @@ def plot_hist(patch_ct):
         for hem in hems:
             ct += 1
             plt.subplot(len(satellites), 2, ct)
-            doy_h = doy[nh_ind] if hem is 'north' else doy[sh_ind]
+            doy_h = doy[nh_ind] if hem == 'north' else doy[sh_ind]
             plt.hist(doy_h, bins=nbins)
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
             plt.ylabel('Patch count')
@@ -143,35 +146,53 @@ def plot_hist(patch_ct):
     plt.show()
 
 
-def plot_polar(patch_ct):
+def plot_polar(patch_ct, crd='mag'):
     sats = [s for s in patch_ct.keys()]
     sats.sort()
     ct = 0  
     for sat in sats:
-        lats = np.squeeze(np.array(patch_ct[sat]['lat_mag'])) * np.pi / 180
-        lons = np.squeeze(np.array(patch_ct[sat]['lon_mag'])) * np.pi / 180
+        if crd == 'mag':
+            lats = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lat_mag'])))
+            lons = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lon_mag'])))
+            unused_alts, pole_lat, pole_lon = physics.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['GEO', 'sph'], to=['MAG', 'sph'])
+        elif crd == 'geo':
+            lats = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lat_geo'])))
+            lons = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lon_geo'])))
+            unused_alts, pole_lat, pole_lon = physics.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['MAG', 'sph'], to=['GEO', 'sph'])
+        pole_lat[1] = - pole_lat[1]
         lons[lons < 0] += 2 * np.pi
 
-        latbins = np.arange(-91, 93, 2) * np.pi / 180
-        lonbins = np.arange(-5, 375, 10) * np.pi / 180
+        latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
+        lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
         counts = np.histogram2d(lats, lons, np.array((latbins, lonbins)))
         vals = counts[0]
+        vals[vals == 0] = np.nan
         latvec, lonvec = np.meshgrid((latbins[:-1] + latbins[1:]) / 2, (lonbins[:-1] + lonbins[1:]) / 2, indexing='ij')
-        hems = collections.OrderedDict({'north': latvec > np.deg2rad(0), 'south': latvec < np.deg2rad(0)})
+        hems = 'north', 'south'
         
-        for hem, ind in hems.items(): 
+        for hem in hems: 
             ct += 1
-            ax = plt.subplot(len(sats), len(hems), ct, polar=True)
-            # labels = ['%2.0f' % (90 - np.rad2deg(val)) for val in np.arange(0.1, 0.6, 0.1)]
-            # ax.set_yticklabels(labels)
-            plt.ylim(0, 35 * np.pi / 180)
             hemlat = latvec
-            if hem is 'south':
+            if hem == 'south':
                 hemlat = -hemlat
+            ax = plt.subplot(len(sats), len(hems), ct, polar=True)
+            latlim = 55
+            plt.ylim(0, np.deg2rad(90 - latlim))
             sc = plt.pcolor(lonvec, np.pi / 2 - hemlat, vals)
-            # sc.cmap.set_under('white')
-            
-            plt.clim(0, 150)
+            hemind = 1 if hem == 'south' else 0
+            plt.plot(pole_lon[hemind], np.pi / 2 - pole_lat[hemind], '.k', markersize=12)
+            labels = ['%2.0f' % (90 - val) for val in np.linspace(0, 90 - latlim, 7)]
+            labels = labels[1:]
+            ax.set_yticklabels(labels)
+            sc.cmap.set_under('white')
+            """
+            m = Basemap(projection='npstere',boundinglat=70,lon_0=270,resolution='l')
+            # draw parallels and meridians.
+            #m.drawparallels(np.arange(-70.,81.,20.))
+            #m.drawmeridians(np.arange(-180.,181.,20.))
+            sc = m.pcolor(lonvec, hemlat, vals)
+            """
+            plt.clim(0, 50)
             plt.colorbar(sc)
             if ct < 3:
                 plt.title('Sat %s: %s hemisphere' % (sat, hem))
