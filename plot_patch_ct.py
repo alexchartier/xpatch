@@ -56,8 +56,8 @@ def main():
 
     # plot_oneday_timeseries(patch_ct)
     # plot_utmlt(patch_ct, plot_type='MLT')
-    plot_utmlt(patch_ct, plot_type='UT')
-    plot_polar(patch_ct)
+    # plot_utmlt(patch_ct, plot_type='UT')
+    plot_polar(patch_ct, crd='geo')
     # plot_hist(patch_ct)
 
 
@@ -147,8 +147,6 @@ def plot_hist(patch_ct):
 
 
 def plot_polar(patch_ct, crd='mag'):
-    pdb.set_trace()
-    
     passes = sum_passes('./data/pass_ct/pass_%Y%m%d.pkl', crd=crd)
     sats = [s for s in patch_ct.keys()]
     sats.sort()
@@ -156,7 +154,10 @@ def plot_polar(patch_ct, crd='mag'):
     hems = 'north', 'south'
     latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
     lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
-    latlim = 70
+    if crd == 'mag':
+        latlim = 70
+    else:
+        latlim = 60
 
     ct = 0  
     for sat in sats:
