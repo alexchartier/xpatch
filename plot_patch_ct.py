@@ -56,7 +56,7 @@ def main():
 
     # plot_oneday_timeseries(patch_ct)
     # plot_utmlt(patch_ct, plot_type='MLT')
-    # plot_utmlt(patch_ct, plot_type='UT')
+    plot_utmlt(patch_ct, plot_type='UT')
     plot_polar(patch_ct)
     # plot_hist(patch_ct)
 
@@ -68,7 +68,6 @@ def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16
     ne = patch_ct[sat]['n'][timeind]
     ne_err = patch_ct[sat]['n_error'][timeind]
     ut = ut[timeind]
-    pdb.set_trace() 
 
 def plot_utmlt(patch_ct, plot_type='UT'):
     sats = [s for s in patch_ct.keys()]
@@ -95,7 +94,7 @@ def plot_utmlt(patch_ct, plot_type='UT'):
             if instrument == 'GPS':
                 plt.ylim(0, 800)
             else:
-                plt.ylim(0, 600)
+                plt.ylim(0, 400)
             if plot_type is 'UT':
                 ut_h = ut[nh_ind] if hem == 'north' else ut[sh_ind]
                 plt.hist(ut_h, bins=nbins)
@@ -113,6 +112,7 @@ def plot_utmlt(patch_ct, plot_type='UT'):
                                 labelbottom='off') # labels along the bottom edge are off
             if np.mod(ct, 2) != 0:
                 plt.ylabel('Patch count')
+            plt.grid()
             plt.title('Satellite %s %s hemisphere' % (sat, hem))
 
     plt.suptitle(instrument, fontweight='bold')
@@ -147,8 +147,17 @@ def plot_hist(patch_ct):
 
 
 def plot_polar(patch_ct, crd='mag'):
+    pdb.set_trace()
+    
+    passes = sum_passes('./data/pass_ct/pass_%Y%m%d.pkl', crd=crd)
     sats = [s for s in patch_ct.keys()]
     sats.sort()
+
+    hems = 'north', 'south'
+    latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
+    lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
+    latlim = 70
+
     ct = 0  
     for sat in sats:
         if crd == 'mag':
@@ -162,25 +171,21 @@ def plot_polar(patch_ct, crd='mag'):
         pole_lat[1] = - pole_lat[1]
         lons[lons < 0] += 2 * np.pi
 
-        latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
-        lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
         counts = np.histogram2d(lats, lons, np.array((latbins, lonbins)))
-        vals = counts[0]
+        vals = counts[0] / passes[sat][crd]
         vals[vals == 0] = np.nan
         latvec, lonvec = np.meshgrid((latbins[:-1] + latbins[1:]) / 2, (lonbins[:-1] + lonbins[1:]) / 2, indexing='ij')
-        hems = 'north', 'south'
         
         for hem in hems: 
             ct += 1
+            ax = plt.subplot(len(sats), len(hems), ct, polar=True)
             hemlat = latvec
             if hem == 'south':
                 hemlat = -hemlat
-            ax = plt.subplot(len(sats), len(hems), ct, polar=True)
-            latlim = 55
             plt.ylim(0, np.deg2rad(90 - latlim))
             sc = plt.pcolor(lonvec, np.pi / 2 - hemlat, vals)
             hemind = 1 if hem == 'south' else 0
-            plt.plot(pole_lon[hemind], np.pi / 2 - pole_lat[hemind], '.k', markersize=12)
+            plt.plot(pole_lon[hemind], np.pi / 2 - pole_lat[hemind], '.m', markersize=15)
             labels = ['%2.0f' % (90 - val) for val in np.linspace(0, 90 - latlim, 7)]
             labels = labels[1:]
             ax.set_yticklabels(labels)
@@ -192,7 +197,7 @@ def plot_polar(patch_ct, crd='mag'):
             #m.drawmeridians(np.arange(-180.,181.,20.))
             sc = m.pcolor(lonvec, hemlat, vals)
             """
-            plt.clim(0, 50)
+            plt.clim(0, 0.1)
             plt.colorbar(sc)
             if ct < 3:
                 plt.title('Sat %s: %s hemisphere' % (sat, hem))
@@ -200,6 +205,27 @@ def plot_polar(patch_ct, crd='mag'):
                 plt.title('Sat %s                                 ' % sat)
 
     plt.show()
+
+
+def sum_passes(fname_format, crd='mag'):
+    time = starttime
+
+    while time <= endtime:
+        with open(time.strftime(fname_format), 'rb') as f:
+            pass_ct = pickle.load(f)
+        if time == starttime:
+            pass_ct_full = pass_ct
+        else:
+            for s in satellites:
+                try:
+                    pass_ct_full[s][crd] += pass_ct[s][crd]
+                except:
+                    print('Missing file for satellite %s on %s' % (s, time.strftime('%Y %m %d')))
+        time += dt.timedelta(days=1)
+
+    for sat in satellites:
+        pass_ct_full[sat][crd][pass_ct_full[sat][crd] == 0] = np.nan
+    return pass_ct_full
 
 
 if __name__ == '__main__':
