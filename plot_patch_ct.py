@@ -57,9 +57,56 @@ def main():
     # plot_oneday_timeseries(patch_ct)
     # plot_utmlt(patch_ct, plot_type='MLT')
     # plot_utmlt(patch_ct, plot_type='UT')
-    plot_polar(patch_ct, crd='geo')
+    plot_magnitudes(patch_ct)
+    # plot_polar(patch_ct, crd='geo')
     # plot_hist(patch_ct)
 
+
+def plot_magnitudes(patch_ct, magtype='absolute'):
+    nbins = 50
+    if magtype == 'relative':
+        bins = np.linspace(2, 9, nbins)
+        ylimit = [0, 3000]
+        xlabel = 'Relative magnitude'
+    else:
+        bins = np.linspace(1E3, 2E5, nbins)
+        ylimit = [0, 300]
+    hems = 'north', 'south'
+    ct = 0
+    for sat in satellites:
+        if magtype == 'relative':
+            mag = np.array(patch_ct[sat]['ne']).flatten() / np.array(patch_ct[sat]['ne_bg']).flatten()
+        elif magtype == 'absolute':
+            mag = np.array(patch_ct[sat]['ne']).flatten() - np.array(patch_ct[sat]['ne_bg']).flatten()
+        
+        sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
+        nh_ind = sat_lats > 0
+        sh_ind = sat_lats < 0
+        for hem in hems:
+            ct += 1
+            plt.subplot(len(satellites), 2, ct)
+            mag_h = mag[nh_ind] if hem == 'north' else mag[sh_ind]
+            print('Sat %s, %s hemisphere, median: %2.2g, mean: %2.2g, max: %2.2g' % (sat, hem, np.median(mag_h), np.mean(mag_h), np.max(mag_h)))
+            pdb.set_trace()
+            n, bins, patches = plt.hist(mag_h, bins=bins)
+            plt.ylim(ylimit)
+            if np.ceil(ct / 2) == len(satellites):
+                plt.xlabel(r'Absolute magnitude (electrons / $cm^{-3}$)')
+            else:
+                plt.tick_params(
+                                axis='x',          # changes apply to the x-axis
+                                which='both',      # both major and minor ticks are affected
+                                bottom='off',      # ticks along the bottom edge are off
+                                top='off',         # ticks along the top edge are off
+                                labelbottom='off') # labels along the bottom edge are off
+            if np.mod(ct, 2) != 0:
+                plt.ylabel('Patch count')
+            
+            plt.grid()
+            plt.title('Satellite %s %s hemisphere' % (sat, hem))
+
+    plt.suptitle(instrument, fontweight='bold')
+    plt.show() 
 
 def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16, 37, 30), \
                                                stop=dt.datetime(2015, 12, 20, 16, 55)):
