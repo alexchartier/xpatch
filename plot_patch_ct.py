@@ -36,23 +36,9 @@ elif instrument == 'GPS':
         fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
 
+
 def main():
-    patch_ct = {}
-    time = starttime
-    while time < endtime:
-        with open(time.strftime(fin), 'rb') as f:
-            count = pickle.load(f)
-        if patch_ct == {}:
-            patch_ct = count
-        else:
-            for sat in satellites:
-                try:
-                    for key, val in count[sat].items():
-                        if key != 'params':
-                            patch_ct[sat][key] = patch_ct[sat][key] + val
-                except:
-                    print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
-        time += dt.timedelta(days=1)
+    patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
 
     # plot_oneday_timeseries(patch_ct)
     # plot_utmlt(patch_ct, plot_type='MLT')
@@ -275,6 +261,25 @@ def sum_passes(fname_format, crd='mag'):
         pass_ct_full[sat][crd][pass_ct_full[sat][crd] == 0] = np.nan
     return pass_ct_full
 
+
+def get_patch_ct(starttime, endtime, satellites, fin):
+    patch_ct = {}
+    time = starttime
+    while time < endtime:
+        with open(time.strftime(fin), 'rb') as f:
+            count = pickle.load(f)
+        if patch_ct == {}:
+            patch_ct = count
+        else:
+            for sat in satellites:
+                try:
+                    for key, val in count[sat].items():
+                        if key != 'params':
+                            patch_ct[sat][key] = patch_ct[sat][key] + val
+                except:
+                    print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
+        time += dt.timedelta(days=1)
+    return patch_ct
 
 if __name__ == '__main__':
     main()
