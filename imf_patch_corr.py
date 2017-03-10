@@ -8,6 +8,7 @@ import numpy as np
 import datetime as dt
 import matplotlib.pyplot as plt
 import scipy.stats.stats as st
+import operator
 import sys 
 sys.path.append('/Users/chartat1/fusionpp/glimpse/')
 import gl_datetime
@@ -28,7 +29,7 @@ def main():
 def correl_sw(omni_data, patch_ct):
     omni_time = np.array(omni_data['time'])
     timeind = np.logical_and(omni_time >= starttime, omni_time < endtime)
-    omni_varnames = 'Bz', 'By', 'B', 'Ey'
+    omni_varnames = set(omni_data.keys()) - set(['DOY', 'time', 'Hour'])
     omni = {}
     for var in omni_varnames:
         omni[var] = omni_data[var][timeind]
@@ -40,7 +41,8 @@ def correl_sw(omni_data, patch_ct):
         t = t + timestep.total_seconds()
     
     binned_patch_ct = {}
-    
+   
+    # Sum up all the satellites 
     for sat in satellites:
         latarr = np.array(patch_ct[sat]['lat_mag'])
         hems = {'north':  latarr > 0,
@@ -50,32 +52,56 @@ def correl_sw(omni_data, patch_ct):
         binned_patch_ct[sat] = {}
         for hem, hemind in hems.items():
             binned_patch_ct[sat][hem] = np.histogram(time_ts[hemind.flatten()], bins=bin_edges)
-            for var in omni_varnames:
-                corr, p = st.pearsonr(omni[var], binned_patch_ct[sat][hem][0]) 
-                if p <= 0.05:
-                    print('Sat %s, %s hemisphere, %s correlation: %2.3f, p-factor: %2.3f' % (sat, hem, var, corr, p))
-    
+            try:
+                 binned_patch_ct[hem] += binned_patch_ct[sat][hem]
+            except:
+                binned_patch_ct[hem] = binned_patch_ct[sat][hem]
+
+    for hem in hems.keys():
+        print('\n\n%s hemisphere\n\n' % hem)
+        corrs = {}
+        for var in omni_varnames:
+            corr, p = st.pearsonr(omni[var], binned_patch_ct[hem][0]) 
+            if p <= 0.05:
+                corrstr = '%s correlation: %2.3f, R-squared: %2.3f, p-factor: %2.3f' % (var, corr, corr ** 2, p) 
+                corrs[corrstr] = corr ** 2
+        sorted_corr = sorted(corrs.items(), key=operator.itemgetter(1))
+        sorted_corr.reverse()
+        for sc in sorted_corr:
+            print(sc[0])
+
     
 
-def read_omni_ascii(fname='./data/omni2_392.lst'):
+def read_omni_ascii(fname='./data/omni2_full.lst', format='./data/omni2_full.fmt'):
+    with open(os.path.abspath(format), 'r') as f:
+        lines = f.readlines()[4:-2]
+        varnames = []
+        types = []
+        for line in lines:
+            varnames.append(' '.join(line.split()[1:-1]))
+            types.append(line.split()[-1])
     with open(os.path.abspath(fname), 'r') as f:
         lines = f.readlines()
         floats = []
         for l in lines:
             floats.append([float(li) for li in l.split()])
         floatarr = np.array(floats)
-        varnames = 'year', 'doy', 'hour', 'B', 'By', 'Bz', 'Ey'
         ct = 0
         data = {}
-        for v in varnames:
-            if (v == 'year') or (v == 'doy'):
+        for vind, v in enumerate(varnames):
+            if 'I' in types[vind]:
                 data[v] = floatarr[:, ct].astype(int)
             else:
                 data[v] = floatarr[:, ct]
             ct += 1
         data['time'] = []
-        for t in range(len(data['year'])):
-            data['time'].append(gl_datetime.idadate2event('%i%03d:%02d0000' % (data['year'][t], data['doy'][t], data['hour'][t])))
+        for t in range(len(data['YEAR'])):
+            data['time'].append(gl_datetime.idadate2event('%i%03d:%02d0000' % (data['YEAR'][t], data['DOY'][t], data['Hour'][t])))
+
+        for varname in varnames:
+            if len(np.unique(data[varname])) < 20:
+                data.pop(varname)
+                print('Removed %s due to lack of unique values' % varname)
 
         return data
 
