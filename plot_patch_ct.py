@@ -16,13 +16,15 @@ endtime = dt.datetime(2016, 12, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
 cutoff_crd = 'mag'
-instrument = 'Langmuir Probe'  # or 'GPS'
+instrument = 'GPS'  # or 'GPS'
 
 # Langmuir Probe
 if instrument is 'Langmuir Probe':
     fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d.pkl'
+    colour = 'b'
 
 elif instrument is 'GPS':
+    colour = 'r'
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
         fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
@@ -50,11 +52,11 @@ def main():
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
 
-    plot_oneday_timeseries(patch_ct)
-    plot_utmlt(patch_ct, plot_type='MLT')
-    plot_utmlt(patch_ct, plot_type='UT')
+    # plot_oneday_timeseries(patch_ct)
+    # plot_utmlt(patch_ct, plot_type='MLT')
+    # plot_utmlt(patch_ct, plot_type='UT')
     #plot_polar(patch_ct)
-    #plot_hist(patch_ct)
+    plot_hist(patch_ct)
 
 
 def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16, 37, 30), \
@@ -130,11 +132,12 @@ def plot_hist(patch_ct):
             ct += 1
             plt.subplot(len(satellites), 2, ct)
             doy_h = doy[nh_ind] if hem is 'north' else doy[sh_ind]
-            plt.hist(doy_h, bins=nbins)
+            plt.hist(doy_h, color=colour, bins=nbins)
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
-            plt.ylabel('Patch count')
+            if np.mod(ct, 2) != 0:
+                plt.ylabel('Patch count / 5 days')
             frame = plt.gca()
-            plt.ylim(0, 150)
+            plt.ylim(0, 300)
             plt.xlim(min(doy), max(doy))
             if ct >= 5:
                 plt.xlabel('Day of year')
