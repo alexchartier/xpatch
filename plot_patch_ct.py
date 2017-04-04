@@ -14,6 +14,7 @@ import socket
 import sys
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
 import physics
+import count_passes
 
 starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2016, 12, 31)
@@ -35,18 +36,45 @@ elif instrument == 'GPS':
         # Home GPS
         fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
-
-
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
-
+    norm_patch_ct = normalize(patch_ct)
     # plot_oneday_timeseries(patch_ct)
     # plot_utmlt(patch_ct, plot_type='MLT')
     # plot_utmlt(patch_ct, plot_type='UT')
-    plot_magnitudes(patch_ct)
-    # plot_polar(patch_ct, crd='geo')
+    # plot_magnitudes(patch_ct)
+    plot_polar(patch_ct, crd='geo')
     # plot_hist(patch_ct)
 
+def normalize(patch_ct, ipath='./data/pass_ct/pass_norm_%Y%m%d.pkl', 
+                    starttime=dt.datetime(2016, 1, 1), 
+                         step=dt.timedelta(days=1),
+                      endtime=dt.datetime(2016, 12, 31),
+                         sats=['A', 'B', 'C']):
+    times = []
+    time = starttime
+    while time <= endtime:
+        times.append(time)
+        time += step
+    
+    day_count = {}
+    hems = 'nh', 'sh'
+    for sat in sats:
+        day_count[sat] = {}
+        for hem in hems:
+            day_count[sat][hem + '_doy'] = np.zeros(len(times)) 
+    for tind, t in enumerate(times):
+        fin = t.strftime(ipath)
+        with open(fin, 'rb') as f:
+            ct = pickle.load(f)
+        for sat in sats:
+            for hem in hems:
+                try:
+                    day_count[sat][hem + '_doy'][tind] = ct[sat][hem + '_t'] 
+                except:
+                    print('No count for %s sat %s' % (t.strftime(ipath), sat))
+    pdb.set_trace()
+    return nh_ct, sh_ct 
 
 def plot_magnitudes(patch_ct, magtype='absolute'):
     nbins = 50
@@ -112,9 +140,7 @@ def plot_utmlt(patch_ct, plot_type='UT'):
         mlon[mlon < 0] += 2 * np.pi
         time = {}
         ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
-        mlt = ut + mlon * 24 / 360
-        mlt[mlt > 24] -= 24
-        mlt[mlt < 0] += 24
+        mlt = calc_mlt(ut, mlon)
 
         sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
         nh_ind = sat_lats > 0
@@ -217,6 +243,7 @@ def plot_polar(patch_ct, crd='mag'):
             if hem == 'south':
                 hemlat = -hemlat
             plt.ylim(0, np.deg2rad(90 - latlim))
+            pdb.set_trace()
             sc = plt.pcolor(lonvec, np.pi / 2 - hemlat, vals)
             hemind = 1 if hem == 'south' else 0
             plt.plot(pole_lon[hemind], np.pi / 2 - pole_lat[hemind], '.m', markersize=15)
@@ -280,6 +307,12 @@ def get_patch_ct(starttime, endtime, satellites, fin):
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
     return patch_ct
+
+def calc_mlt(ut, mlon):
+    mlt = ut + mlon * 24 / 360
+    mlt[mlt > 24] -= 24
+    mlt[mlt < 0] += 24
+    return mlt
 
 if __name__ == '__main__':
     main()

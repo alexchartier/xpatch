@@ -13,6 +13,7 @@ import sys
 sys.path.append('/Users/chartat1/fusionpp/glimpse/')
 import gl_datetime
 import plot_patch_ct
+import count_passes
 
 starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2017, 1, 1) 
@@ -22,11 +23,12 @@ cutoff_crd = 'mag'
 fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d_70deg.pkl'
 
 def main():
+    pass_ct = count_passes.get_pass_ct()
     omni_data = read_omni_ascii()
     patch_ct = plot_patch_ct.get_patch_ct(starttime, endtime, satellites, fin)
-    correl_sw(omni_data, patch_ct)
+    correl_sw(omni_data, patch_ct, pass_ct)
 
-def correl_sw(omni_data, patch_ct):
+def correl_sw(omni_data, patch_ct, pass_ct):
     omni_time = np.array(omni_data['time'])
     timeind = np.logical_and(omni_time >= starttime, omni_time < endtime)
     omni_varnames = set(omni_data.keys()) - set(['DOY', 'time', 'Hour'])
@@ -41,36 +43,48 @@ def correl_sw(omni_data, patch_ct):
         t = t + timestep.total_seconds()
     
     binned_patch_ct = {}
+    norm_patch_ct = {}
+    binned_pass_ct = {}
    
     # Sum up all the satellites 
     for sat in satellites:
         latarr = np.array(patch_ct[sat]['lat_mag'])
-        hems = {'north':  latarr > 0,
+        hems = {'north': latarr > 0,
                 'south': latarr < 0,
-                'full': latarr > -95}
+                 'full': latarr > -95}
+        pass_hems = {'north': pass_ct[sat]['hem'] > 0,
+                     'south': pass_ct[sat]['hem'] < 0,
+                      'full': pass_ct[sat]['hem'] > -95}
         time_ts = np.array([(t[0] - starttime).total_seconds() for t in patch_ct[sat]['times']])
+        pass_time_ts = np.array([(t - starttime).total_seconds() for t in pass_ct[sat]['times']])
         binned_patch_ct[sat] = {}
+        norm_patch_ct[sat] = {}
+        binned_pass_ct[sat] = {}
         for hem, hemind in hems.items():
+            pass_hemind = pass_hems[hem].flatten()
             binned_patch_ct[sat][hem] = np.histogram(time_ts[hemind.flatten()], bins=bin_edges)
+            binned_pass_ct[sat][hem] = np.histogram(pass_time_ts[pass_hemind], bins=bin_edges)
+            norm_patch_ct[sat][hem] = binned_patch_ct[sat][hem][0] / binned_pass_ct[sat][hem][0]
             try:
-                 binned_patch_ct[hem] += binned_patch_ct[sat][hem]
+                norm_patch_ct[hem] += norm_patch_ct[sat][hem]
             except:
-                binned_patch_ct[hem] = binned_patch_ct[sat][hem]
+                norm_patch_ct[hem] = norm_patch_ct[sat][hem]
 
     for hem in hems.keys():
         print('\n\n%s hemisphere\n\n' % hem)
         corrs = {}
+        finind = np.isfinite(norm_patch_ct[hem])
         for var in omni_varnames:
-            corr, p = st.pearsonr(omni[var], binned_patch_ct[hem][0]) 
+            corr, p = st.pearsonr(omni[var][finind], norm_patch_ct[hem][finind]) 
             if p <= 0.05:
-                corrstr = '%s correlation: %2.3f, R-squared: %2.3f, p-factor: %2.3f' % (var, corr, corr ** 2, p) 
+                corrstr = '%s correlation: %2.2f, R-squared: %2.2f, p-factor: %2.3f' % (var, corr, corr ** 2, p) 
                 corrs[corrstr] = corr ** 2
         sorted_corr = sorted(corrs.items(), key=operator.itemgetter(1))
         sorted_corr.reverse()
         for sc in sorted_corr:
             print(sc[0])
+    pdb.set_trace()
 
-    
 
 def read_omni_ascii(fname='./data/omni2_full.lst', format='./data/omni2_full.fmt'):
     with open(os.path.abspath(format), 'r') as f:
