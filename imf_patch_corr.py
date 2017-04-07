@@ -19,11 +19,13 @@ starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2017, 1, 1) 
 timestep = dt.timedelta(hours=1)
 satellites = 'A', 'B', 'C' 
-cutoff_crd = 'mag'
-fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d_70deg.pkl'
+approach = 'coley'
+fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_70deg.pkl'
+pass_fin = './data/pass_ct/pass_%Y%m%d.pkl'
 
 def main():
-    pass_ct = count_passes.get_pass_ct()
+    pass_ct = count_passes.get_ct(pass_fin)
+    pdb.set_trace()
     omni_data = read_omni_ascii()
     patch_ct = plot_patch_ct.get_patch_ct(starttime, endtime, satellites, fin)
     correl_sw(omni_data, patch_ct, pass_ct)
