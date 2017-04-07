@@ -14,23 +14,25 @@ import matplotlib
 import socket
 
 
-def main():
-    starttime = dt.datetime(2016, 5, 8, 0, 0, 0)
-    endtime = dt.datetime(2016, 5, 9, 0, 0, 0)
-    sats = ['B']
-    instrument = 'Langmuir Probe'
-    cutoff_crd = 'mag'
-    proc = False  # Run the preprocessing or just load the output
+<<<<<<< HEAD
+def main(
+        starttime = dt.datetime(2016, 5, 8, 0, 0, 0),
+          endtime = dt.datetime(2016, 5, 9, 0, 0, 0),
+              sats=['B'],
+        instrument='Langmuir Probe',
+          approach='coley',
+           procgps=False,
+         ):
 
     # Langmuir Probe
     if instrument == 'Langmuir Probe':
         import proc_swarm_lp
-        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sats, save=False)
+        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, approach=approach, sats=sats, save=False)
         plot_ne_timeseries(patch_ct, vals, start=starttime, stop=endtime) 
 
     elif instrument == 'GPS':        
         import proc_swarm_tec
-        if proc:
+        if procgps:
             patch_ct, vals = proc_swarm_tec.main(time=starttime, endtime=endtime, sats=sats, save=True)
         else:
             vals = {}
@@ -133,11 +135,11 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     latind = mlat > lat_cutoff
     ind = np.logical_and(latind, timeind)
     ne = vals[sat]['ne'][ind]
+    ne_rm = vals[sat]['ne_rm'][ind]
     ut = ut[ind]
     mlat = mlat[ind]
     count_ut = np.array([t[0] for t in patch_ct[sat]['times']])
     timeind = np.logical_and(count_ut > start, count_ut < stop)
-    pdb.set_trace()
     count = {}
     patch_ct[sat].pop('params')
     for key, val in patch_ct[sat].items():
@@ -145,12 +147,14 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
 
     fig, ax1 = plt.subplots()
     utd = mdates.date2num(ut)
+
     # Ne timeseries
     plt.plot_date(utd, ne, 'b--')
-    plt.plot_date(utd, ne, 'b.', markersize=3)
+    plt.plot_date(utd, ne_rm, 'k')
+    #plt.plot_date(utd, ne, 'b.', markersize=3)
 
     # plot peak Ne
-    plt.plot(mdates.date2num(count['times'][0]), count['ne'], 'kx', markersize=10, mew=4)
+    plt.plot(mdates.date2num(count['times'][0]), count['ne_rm'], 'kx', markersize=10, mew=4)
 
     # plot vertical lines at start and end of window
     maxval = ne.max() * 1.1
@@ -158,10 +162,10 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     plt.plot([mdates.date2num(count['t_end'][0]), mdates.date2num(count['t_end'][0])], [0, maxval], 'k--', mew=2)
 
     # plot b1, b2 and bg levels of Ne
-    plt.plot(mdates.date2num(count['t1'][0]), count['ne_b1'], 'gx', markersize=10, mew=4)
-    plt.plot(mdates.date2num(count['t2'][0]), count['ne_b2'], 'gx', markersize=10, mew=4)
+    # plt.plot(mdates.date2num(count['t_start'][0]), count['ne_bg'], 'gx', markersize=10, mew=4)
+    # plt.plot(mdates.date2num(count['t_end'][0]), count['ne_bg'], 'gx', markersize=10, mew=4)
     plt.plot(mdates.date2num(count['times'][0]), count['ne_bg'], 'rx', markersize=10, mew=4)
-    plt.plot([mdates.date2num(count['t1'][0]), mdates.date2num(count['t2'][0])], [count['ne_b1'], count['ne_b2']],'g--')
+    plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_end'][0])], [count['ne_bg'], count['ne_bg']],'g--')
 
     fig.autofmt_xdate()
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))

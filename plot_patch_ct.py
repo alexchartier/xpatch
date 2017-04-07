@@ -13,18 +13,20 @@ import socket
 import sys
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
 import physics
+import count_passes
 
 starttime = dt.datetime(2016, 1, 1)
-endtime = dt.datetime(2016, 12, 31)
+endtime = dt.datetime(2016, 3, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
-cutoff_crd = 'mag'
-instrument = 'GPS'  # or 'GPS'
+
+approach = 'coley'
+instrument = 'Langmuir Probe'  # or 'GPS'
 
 # Langmuir Probe
-if instrument is 'Langmuir Probe':
-    fin = './data/proc_lp/%s/' % cutoff_crd + 'lp_%Y%m%d_70deg.pkl'
-    colour = 'b'
+if instrument == 'Langmuir Probe':
+    fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_70deg.pkl'
+    norm_fin = './data/pass_ct/pass_norm_%Y%m%d.pkl'
 
 elif instrument is 'GPS':
     colour = 'r'
@@ -36,35 +38,26 @@ elif instrument is 'GPS':
         # Home GPS
         fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
-
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
+    norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime)
+    # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
+    # oneday_timeseries()
+    # plot_mlt(patch_ct, norm_ct)
+    plot_polar(patch_ct, crd='mag')
+    # hist(patch_ct)
 
-    # plot_oneday_timeseries(patch_ct)
-    # plot_utmlt(patch_ct, plot_type='MLT')
-    # plot_utmlt(patch_ct, plot_type='UT')
-    # plot_magnitudes(patch_ct)
-    # plot_polar(patch_ct, crd='geo')
-    plot_hist(patch_ct)
 
-
-def plot_magnitudes(patch_ct, magtype='absolute'):
+def plot_magnitudes(patch_ct):
     nbins = 50
-    if magtype == 'relative':
-        bins = np.linspace(2, 9, nbins)
-        ylimit = [0, 3000]
-        xlabel = 'Relative magnitude'
-    else:
-        bins = np.linspace(1E3, 2E5, nbins)
-        ylimit = [0, 300]
+    bins = np.linspace(2, 15, nbins)
+    ylimit = [0, 300]
+    xlabel = 'Relative magnitude'
     hems = 'north', 'south'
     ct = 0
     for sat in satellites:
-        if magtype == 'relative':
-            mag = np.array(patch_ct[sat]['ne']).flatten() / np.array(patch_ct[sat]['ne_bg']).flatten()
-        elif magtype == 'absolute':
 
-            mag = np.array(patch_ct[sat]['ne']).flatten() - np.array(patch_ct[sat]['ne_bg']).flatten()
+        mag = np.array(patch_ct[sat]['ne_rm']).flatten() / np.array(patch_ct[sat]['ne_bg']).flatten()
         
         sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
         nh_ind = sat_lats > 0
@@ -74,11 +67,10 @@ def plot_magnitudes(patch_ct, magtype='absolute'):
             plt.subplot(len(satellites), 2, ct)
             mag_h = mag[nh_ind] if hem == 'north' else mag[sh_ind]
             print('Sat %s, %s hemisphere, median: %2.2g, mean: %2.2g, max: %2.2g' % (sat, hem, np.median(mag_h), np.mean(mag_h), np.max(mag_h)))
-            pdb.set_trace()
             n, bins, patches = plt.hist(mag_h, bins=bins)
             plt.ylim(ylimit)
             if np.ceil(ct / 2) == len(satellites):
-                plt.xlabel(r'Absolute magnitude (electrons / $cm^{-3}$)')
+                plt.xlabel(r'Patch magnitude')
             else:
                 plt.tick_params(
                                 axis='x',          # changes apply to the x-axis
@@ -95,64 +87,49 @@ def plot_magnitudes(patch_ct, magtype='absolute'):
     plt.suptitle(instrument, fontweight='bold')
     plt.show() 
 
-def plot_oneday_timeseries(patch_ct, sat='B', start=dt.datetime(2015, 12, 20, 16, 37, 30), \
-                                               stop=dt.datetime(2015, 12, 20, 16, 55)):
-    ut = np.array([t[0] for t in patch_ct[sat]['times']])
-    timeind = (ut > start) and (ut < stop)
-    ne = patch_ct[sat]['n'][timeind]
-    ne_err = patch_ct[sat]['n_error'][timeind]
-    ut = ut[timeind]
+def oneday_timeseries():
+    import plot_timeseries
+    plot_timeseries.main(instrument='Langmuir Probe')
 
-def plot_utmlt(patch_ct, plot_type='UT'):
-    sats = [s for s in patch_ct.keys()]
-    sats.sort()
-    nbins = 24
+def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
     ct = 0  
-    for sat in sats:
-        mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
-        mlon[mlon < 0] += 2 * np.pi
-        time = {}
-        ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
-        mlt = ut + mlon * 24 / 360
-        mlt[mlt > 24] -= 24
-        mlt[mlt < 0] += 24
+    hems = 'north', 'south'
+    for hem in hems:
+        mlt_hist = np.zeros(norm_ct[sats[0]]['nh_mlt'][0].shape)
+        for sat in sats:
+            mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
+            mlon[mlon < 0] += 360
+            time = {}
+            ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+            mlt = calc_mlt(ut, mlon)
 
-        sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
-        nh_ind = sat_lats > 0
-        sh_ind = sat_lats < 0
-        hems = 'north', 'south'
-        for hem in hems:
-            ct += 1
-            plt.subplot(len(satellites), 2, ct)
-            plt.xlim(0, 24)
-            if instrument == 'GPS':
-                plt.ylim(0, 800)
-            else:
-                plt.ylim(0, 400)
-            if plot_type is 'UT':
-                ut_h = ut[nh_ind] if hem == 'north' else ut[sh_ind]
-                plt.hist(ut_h, bins=nbins)
-            else:
-                mlt_h = mlt[nh_ind] if hem == 'north' else mlt[sh_ind]
-                n, bins, patches = plt.hist(mlt_h, bins=nbins)
-            if np.ceil(ct / 2) == len(sats):
-                plt.xlabel('%s Hour' % plot_type)
-            else:
-                plt.tick_params(
-                                axis='x',          # changes apply to the x-axis
-                                which='both',      # both major and minor ticks are affected
-                                bottom='off',      # ticks along the bottom edge are off
-                                top='off',         # ticks along the top edge are off
-                                labelbottom='off') # labels along the bottom edge are off
-            if np.mod(ct, 2) != 0:
-                plt.ylabel('Patch count')
-            plt.grid()
-            plt.title('Satellite %s %s hemisphere' % (sat, hem))
+            sat_lats = np.squeeze(np.array(patch_ct[sat]['lat_mag']))
+            nh_ind = sat_lats > 0
+            sh_ind = sat_lats < 0
+            mlt_h = mlt[nh_ind] if hem == 'north' else mlt[sh_ind]
+            norm = norm_ct[sat]['nh_mlt'] if hem == 'north' else norm_ct[sat]['sh_mlt']
+            binedges = norm[1]
+            mlt_hist_sat = np.histogram(mlt_h, binedges)
+            mlt_hist += mlt_hist_sat[0] / (norm[0] / 7200)  # Patches observed per satellite hour spent in each MLT bin
+
+        ct += 1
+        plt.subplot(1, 2, ct)
+        plt.xlim(0, 24)
+        if instrument == 'GPS':
+            plt.ylim(0, 800)
+        else:
+            plt.ylim(0, 20)
+       
+        plt.bar(binedges[:-1], mlt_hist, width=np.diff(binedges))
+        plt.xlabel('MLT Hour')
+        if np.mod(ct, 2) != 0:
+            plt.ylabel('Patch count')
+        plt.grid()
+        plt.title('%s hemisphere' % (hem))
 
     plt.suptitle(instrument, fontweight='bold')
     plt.show()
                 
-
 
 def plot_hist(patch_ct):
     ct = 0
@@ -190,8 +167,6 @@ def plot_polar(patch_ct, crd='mag'):
     sats.sort()
 
     hems = 'north', 'south'
-    latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
-    lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
     if crd == 'mag':
         latlim = 70
     else:
@@ -211,6 +186,7 @@ def plot_polar(patch_ct, crd='mag'):
         lons[lons < 0] += 2 * np.pi
 
         counts = np.histogram2d(lats, lons, np.array((latbins, lonbins)))
+        pdb.set_trace()
         vals = counts[0] / passes[sat][crd]
         vals[vals == 0] = np.nan
         latvec, lonvec = np.meshgrid((latbins[:-1] + latbins[1:]) / 2, (lonbins[:-1] + lonbins[1:]) / 2, indexing='ij')
@@ -254,11 +230,11 @@ def sum_passes(fname_format, crd='mag'):
         with open(time.strftime(fname_format), 'rb') as f:
             pass_ct = pickle.load(f)
         if time == starttime:
-            pass_ct_full = pass_ct
+            pass_ct_full = np.array(pass_ct)
         else:
             for s in satellites:
                 try:
-                    pass_ct_full[s][crd] += pass_ct[s][crd]
+                    pass_ct_full[s][crd][0] += pass_ct[s][crd][0]
                 except:
                     print('Missing file for satellite %s on %s' % (s, time.strftime('%Y %m %d')))
         time += dt.timedelta(days=1)
@@ -286,6 +262,12 @@ def get_patch_ct(starttime, endtime, satellites, fin):
                     print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
         time += dt.timedelta(days=1)
     return patch_ct
+
+def calc_mlt(ut, mlon):
+    mlt = ut + mlon * 24 / 360
+    mlt[mlt > 24] -= 24
+    mlt[mlt < 0] += 24
+    return mlt
 
 if __name__ == '__main__':
     main()
