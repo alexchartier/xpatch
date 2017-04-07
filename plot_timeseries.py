@@ -15,8 +15,8 @@ import socket
 
 
 def main():
-    starttime = dt.datetime(2015, 12, 20)
-    endtime = dt.datetime(2015, 12, 20)
+    starttime = dt.datetime(2016, 5, 8, 0, 0, 0)
+    endtime = dt.datetime(2016, 5, 9, 0, 0, 0)
     sats = ['B']
     instrument = 'Langmuir Probe'
     cutoff_crd = 'mag'
@@ -25,9 +25,8 @@ def main():
     # Langmuir Probe
     if instrument == 'Langmuir Probe':
         import proc_swarm_lp
-        pdb.set_trace()
         patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, sats=sats, save=False)
-        plot_ne_timeseries(patch_ct, vals) 
+        plot_ne_timeseries(patch_ct, vals, start=starttime, stop=endtime) 
 
     elif instrument == 'GPS':        
         import proc_swarm_tec
@@ -125,18 +124,20 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
 
  
 def plot_ne_timeseries(patch_ct, vals, sat='B', \
-                                        start=dt.datetime(2015, 12, 20, 16, 35), \
-                                           stop=dt.datetime(2015, 12, 20, 16, 59, 32)):
+                                       lat_cutoff=-90, \
+                                       start=dt.datetime(2015, 12, 20, 16, 35), \
+                                       stop=dt.datetime(2015, 12, 20, 17, 5)):
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)
-    latind = mlat > 45
+    latind = mlat > lat_cutoff
     ind = np.logical_and(latind, timeind)
     ne = vals[sat]['ne'][ind]
     ut = ut[ind]
     mlat = mlat[ind]
     count_ut = np.array([t[0] for t in patch_ct[sat]['times']])
     timeind = np.logical_and(count_ut > start, count_ut < stop)
+    pdb.set_trace()
     count = {}
     patch_ct[sat].pop('params')
     for key, val in patch_ct[sat].items():
@@ -181,8 +182,8 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
 
     # plot magnetic latitude ticks
     ax2 = ax1.twiny()
-    new_tick_locations = utd[0:-1:int(len(utd) / 5)]
-    new_ticks = mlat[0:-1:int(len(utd) / 5)]
+    new_tick_locations = utd[0:-1:int(len(utd) / 4)]
+    new_ticks = mlat[0:-1:int(len(utd) / 4)]
     new_ticklabels = ['%2.1f' % t for t in new_ticks]
     ax2.set_xlim(ax1.get_xlim())
     ax2.set_xticks(new_tick_locations)

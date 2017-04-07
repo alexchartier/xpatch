@@ -25,7 +25,6 @@ def main():
     cutoff_crd = 'geo'
     sats = 'A', 'B', 'C' 
     vals = {}
-    patch_ct = {}    
 
     print('Loading data')
     for sat in sats:

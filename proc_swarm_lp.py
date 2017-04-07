@@ -27,7 +27,7 @@ def main(ipath='./data/swarm_lp/',
          sats = ['A', 'B', 'C'],
          save=True):
     
-    while time < endtime: 
+    while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
         vals = {}
@@ -61,8 +61,8 @@ def count_patches(vals, lat_cutoff=70, window_sec=200, min_time_sec=10, cadence_
     cadence = dt.timedelta(seconds=cadence_sec) 
 
     # Transform lats/lons to magnetic 
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'] * np.pi / 180, \
-                          vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
+    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
+                          np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
         
