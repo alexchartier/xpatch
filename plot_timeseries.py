@@ -14,8 +14,10 @@ import matplotlib
 import socket
 
 
-def main(starttime=dt.datetime(2015, 12, 20, 16, 35),
-           endtime=dt.datetime(2015, 12, 20, 17, 5),
+<<<<<<< HEAD
+def main(
+        starttime = dt.datetime(2016, 5, 8, 0, 0, 0),
+          endtime = dt.datetime(2016, 5, 9, 0, 0, 0),
               sats=['B'],
         instrument='Langmuir Probe',
           approach='coley',

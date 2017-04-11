@@ -5,7 +5,6 @@ Script to plot the output of the SWARM patch counter (either TEC or LP)
 """
 import pdb
 import matplotlib.pyplot as plt
-from mpl_toolkits.basemap import Basemap
 import pickle
 import collections
 import datetime as dt
@@ -20,6 +19,7 @@ starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2016, 3, 31)
 timestep = dt.timedelta(days=5)
 satellites = 'A', 'B', 'C'
+
 approach = 'coley'
 instrument = 'Langmuir Probe'  # or 'GPS'
 
@@ -28,7 +28,8 @@ if instrument == 'Langmuir Probe':
     fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_70deg.pkl'
     norm_fin = './data/pass_ct/pass_norm_%Y%m%d.pkl'
 
-elif instrument == 'GPS':
+elif instrument is 'GPS':
+    colour = 'r'
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
         fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
@@ -55,6 +56,7 @@ def plot_magnitudes(patch_ct):
     hems = 'north', 'south'
     ct = 0
     for sat in satellites:
+
         mag = np.array(patch_ct[sat]['ne_rm']).flatten() / np.array(patch_ct[sat]['ne_bg']).flatten()
         
         sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
@@ -141,17 +143,21 @@ def plot_hist(patch_ct):
         for hem in hems:
             ct += 1
             plt.subplot(len(satellites), 2, ct)
-            doy_h = doy[nh_ind] if hem == 'north' else doy[sh_ind]
-            plt.hist(doy_h, bins=nbins)
+            doy_h = doy[nh_ind] if hem is 'north' else doy[sh_ind]
+            plt.hist(doy_h, color=colour, bins=nbins)
+
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
-            plt.ylabel('Patch count')
+            if np.mod(ct, 2) != 0:
+                plt.ylabel('Patch count / 5 days')
             frame = plt.gca()
-            plt.ylim(0, 150)
+            plt.ylim(0, 300)
             plt.xlim(min(doy), max(doy))
             if ct >= 5:
                 plt.xlabel('Day of year')
             else:
                 frame.axes.xaxis.set_ticklabels([])
+            plt.grid()
+    plt.suptitle(instrument, fontweight='bold')
     plt.show()
 
 
@@ -202,6 +208,7 @@ def plot_polar(patch_ct, crd='mag'):
             ax.set_yticklabels(labels)
             sc.cmap.set_under('white')
             """
+            from mpl_toolkits.basemap import Basemap
             m = Basemap(projection='npstere',boundinglat=70,lon_0=270,resolution='l')
             # draw parallels and meridians.
             #m.drawparallels(np.arange(-70.,81.,20.))
