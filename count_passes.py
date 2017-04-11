@@ -47,6 +47,7 @@ def main(ipath='./data/swarm_lp/',
 
         if save:
             fout = opath + time.strftime('/pass_%Y%m%d.pkl')
+            pdb.set_trace()
             with open(fout, 'wb') as f:
                 pickle.dump(pass_ct, f)
             print('Saving %s' % fout)

@@ -37,14 +37,14 @@ elif instrument == 'GPS':
         # Home GPS
         fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
+
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
     norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
     # plot_mlt(patch_ct, norm_ct)
-    plot_polar(patch_ct, crd='mag')
-    # hist(patch_ct)
+    # plot_polar(patch_ct, crd='mag')
 
 
 def plot_magnitudes(patch_ct):
@@ -178,10 +178,10 @@ def plot_polar(patch_ct, crd='mag'):
             unused_alts, pole_lat, pole_lon = physics.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['MAG', 'sph'], to=['GEO', 'sph'])
         pole_lat[1] = - pole_lat[1]
         lons[lons < 0] += 2 * np.pi
-
+       
+        latbins, lonbins =  passes[sat][crd][1:]
         counts = np.histogram2d(lats, lons, np.array((latbins, lonbins)))
-        pdb.set_trace()
-        vals = counts[0] / passes[sat][crd]
+        vals = counts[0] / (passes[sat][crd][0] / 7200)
         vals[vals == 0] = np.nan
         latvec, lonvec = np.meshgrid((latbins[:-1] + latbins[1:]) / 2, (lonbins[:-1] + lonbins[1:]) / 2, indexing='ij')
         
@@ -192,7 +192,9 @@ def plot_polar(patch_ct, crd='mag'):
             if hem == 'south':
                 hemlat = -hemlat
             plt.ylim(0, np.deg2rad(90 - latlim))
-            sc = plt.pcolor(lonvec, np.pi / 2 - hemlat, vals)
+            # vals[np.isnan(vals)] = 0
+            sc = plt.pcolor(lonvec, np.pi / 2 - hemlat, vals, vmin=np.nanmin(vals), vmax=np.nanmax(vals))
+            sc.cmap.set_under('white')
             hemind = 1 if hem == 'south' else 0
             plt.plot(pole_lon[hemind], np.pi / 2 - pole_lat[hemind], '.m', markersize=15)
             labels = ['%2.0f' % (90 - val) for val in np.linspace(0, 90 - latlim, 7)]
@@ -206,7 +208,7 @@ def plot_polar(patch_ct, crd='mag'):
             #m.drawmeridians(np.arange(-180.,181.,20.))
             sc = m.pcolor(lonvec, hemlat, vals)
             """
-            plt.clim(0, 0.1)
+            plt.clim(0, 15)
             plt.colorbar(sc)
             if ct < 3:
                 plt.title('Sat %s: %s hemisphere' % (sat, hem))
@@ -218,12 +220,14 @@ def plot_polar(patch_ct, crd='mag'):
 
 def sum_passes(fname_format, crd='mag'):
     time = starttime
-
+    pass_ct_full = {}
     while time <= endtime:
         with open(time.strftime(fname_format), 'rb') as f:
             pass_ct = pickle.load(f)
         if time == starttime:
-            pass_ct_full = np.array(pass_ct)
+            for s in satellites:
+                pass_ct_full[s] = {}
+                pass_ct_full[s][crd] = np.array(pass_ct[s][crd])
         else:
             for s in satellites:
                 try:
@@ -232,8 +236,8 @@ def sum_passes(fname_format, crd='mag'):
                     print('Missing file for satellite %s on %s' % (s, time.strftime('%Y %m %d')))
         time += dt.timedelta(days=1)
 
-    for sat in satellites:
-        pass_ct_full[sat][crd][pass_ct_full[sat][crd] == 0] = np.nan
+    # for sat in satellites:
+    #     pass_ct_full[sat][crd][pass_ct_full[sat][crd] == 0] = np.nan
     return pass_ct_full
 
 
