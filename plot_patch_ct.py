@@ -16,19 +16,20 @@ import physics
 import count_passes
 
 starttime = dt.datetime(2016, 1, 1)
-endtime = dt.datetime(2016, 3, 31)
-timestep = dt.timedelta(days=5)
+endtime = dt.datetime(2016, 12, 31)
 satellites = 'A', 'B', 'C'
 
 approach = 'coley'
 instrument = 'Langmuir Probe'  # or 'GPS'
+cutoff = 70
 
 # Langmuir Probe
 if instrument == 'Langmuir Probe':
-    fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_70deg.pkl'
+    fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % cutoff
     norm_fin = './data/pass_ct/pass_norm_%Y%m%d.pkl'
+    colour = 'b'
 
-elif instrument is 'GPS':
+elif instrument == 'GPS':
     colour = 'r'
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
@@ -42,10 +43,11 @@ elif instrument is 'GPS':
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
     norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime)
+    # plot_hist(patch_ct)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
     # plot_mlt(patch_ct, norm_ct)
-    # plot_polar(patch_ct, crd='mag')
+    plot_polar(patch_ct, crd='mag')
 
 
 def plot_magnitudes(patch_ct):
@@ -91,7 +93,7 @@ def oneday_timeseries():
     import plot_timeseries
     plot_timeseries.main(instrument='Langmuir Probe')
 
-def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
+def plot_mlt(patch_ct, norm_ct, sats=['A']):
     ct = 0  
     hems = 'north', 'south'
     for hem in hems:
@@ -118,12 +120,12 @@ def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
         if instrument == 'GPS':
             plt.ylim(0, 800)
         else:
-            plt.ylim(0, 20)
+            plt.ylim(0, 12)
        
         plt.bar(binedges[:-1], mlt_hist, width=np.diff(binedges))
         plt.xlabel('MLT Hour')
         if np.mod(ct, 2) != 0:
-            plt.ylabel('Patch count')
+            plt.ylabel('Patch count / hour')
         plt.grid()
         plt.title('%s hemisphere' % (hem))
 
@@ -131,7 +133,7 @@ def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
     plt.show()
                 
 
-def plot_hist(patch_ct):
+def plot_hist(patch_ct, timestep=dt.timedelta(days=5)):
     ct = 0
     for sat in satellites:
         doy = np.array([time[0].timetuple().tm_yday for time in patch_ct[sat]['times']])
@@ -143,14 +145,14 @@ def plot_hist(patch_ct):
         for hem in hems:
             ct += 1
             plt.subplot(len(satellites), 2, ct)
-            doy_h = doy[nh_ind] if hem is 'north' else doy[sh_ind]
+            doy_h = doy[nh_ind] if hem == 'north' else doy[sh_ind]
             plt.hist(doy_h, color=colour, bins=nbins)
 
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
             if np.mod(ct, 2) != 0:
                 plt.ylabel('Patch count / 5 days')
             frame = plt.gca()
-            plt.ylim(0, 300)
+            plt.ylim(0, 150)
             plt.xlim(min(doy), max(doy))
             if ct >= 5:
                 plt.xlabel('Day of year')

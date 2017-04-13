@@ -23,7 +23,7 @@ def main(ipath='./data/swarm_lp/',
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2017, 1, 1),
          cutoff_crd='mag',
-         lat_cutoff=70,
+         lat_cutoff=77,
          sats = ['A', 'B', 'C'],
          save=True,
          approach='coley'):
