@@ -15,8 +15,10 @@ import socket
 
 
 def main(
-        starttime = dt.datetime(2016, 5, 8, 0, 0, 0),
-          endtime = dt.datetime(2016, 5, 9, 0, 0, 0),
+        starttime = dt.datetime(2015, 12, 20, 16, 37, 10),
+          endtime = dt.datetime(2015, 12, 20, 17, 0, 0),
+        # starttime = dt.datetime(2016, 5, 8, 16, 37, 10),
+        #   endtime = dt.datetime(2016, 5, 8, 17, 0, 0),
               sats=['B'],
         instrument='Langmuir Probe',
           approach='coley',
@@ -148,23 +150,23 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     utd = mdates.date2num(ut)
 
     # Ne timeseries
-    plt.plot_date(utd, ne, 'b--')
-    plt.plot_date(utd, ne_rm, 'k')
-    #plt.plot_date(utd, ne, 'b.', markersize=3)
+    obs = plt.plot_date(utd, ne, 'b--', label='Observed Ne')
+    mf = plt.plot_date(utd, ne_rm, 'k', label='Median-smoothed Ne', linewidth=2)
 
-    # plot peak Ne
-    plt.plot(mdates.date2num(count['times'][0]), count['ne_rm'], 'kx', markersize=10, mew=4)
+    # plot peak and background Ne
+    pk = plt.plot(mdates.date2num(count['times'][0]), count['ne_rm'], 'rx', markersize=10, mew=4, label='Peak')
+    bg = plt.plot(mdates.date2num(count['times'][0]), count['ne_bg'], 'gx', label='background',  markersize=10, mew=4)
+
+    handles, labels = ax1.get_legend_handles_labels()
+    ax1.legend(handles, labels)
 
     # plot vertical lines at start and end of window
     maxval = ne.max() * 1.1
     plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_start'][0])], [0, maxval], 'k--', mew=2)
     plt.plot([mdates.date2num(count['t_end'][0]), mdates.date2num(count['t_end'][0])], [0, maxval], 'k--', mew=2)
 
-    # plot b1, b2 and bg levels of Ne
-    # plt.plot(mdates.date2num(count['t_start'][0]), count['ne_bg'], 'gx', markersize=10, mew=4)
-    # plt.plot(mdates.date2num(count['t_end'][0]), count['ne_bg'], 'gx', markersize=10, mew=4)
-    plt.plot(mdates.date2num(count['times'][0]), count['ne_bg'], 'rx', markersize=10, mew=4)
-    plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_end'][0])], [count['ne_bg'], count['ne_bg']],'g--')
+    # horizontal line between the two points
+    plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_end'][0])], [count['ne_bg'], count['ne_bg']], 'g--')
 
     fig.autofmt_xdate()
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))

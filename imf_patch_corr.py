@@ -18,9 +18,10 @@ import count_passes
 starttime = dt.datetime(2016, 1, 1)
 endtime = dt.datetime(2017, 1, 1) 
 timestep = dt.timedelta(hours=1)
-satellites = 'A', 'B', 'C' 
+satellites = 'A', 'B' 
 approach = 'coley'
-fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_70deg.pkl'
+cutoff = 77
+fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % cutoff
 pass_fin = './data/pass_ct/pass_%Y%m%d.pkl'
 
 def main():
@@ -58,6 +59,7 @@ def correl_sw(omni_data, patch_ct, pass_ct):
                      'south': pass_ct[sat]['hem'] < 0,
                       'full': pass_ct[sat]['hem'] > -95}
         time_ts = np.array([(t[0] - starttime).total_seconds() for t in patch_ct[sat]['times']])
+        pdb.set_trace()
         pass_time_ts = np.array([(t - starttime).total_seconds() for t in pass_ct[sat]['times']])
         binned_patch_ct[sat] = {}
         norm_patch_ct[sat] = {}

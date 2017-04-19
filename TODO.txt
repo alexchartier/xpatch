@@ -1,3 +1,14 @@
-1. Implement Spicher's low-pass filtering approach and 35-th percentile background level determination
+1. Implement Spicher's low-pass filtering approach and 35-th percentile background level determination, then rerun count_passes.py
+      Background is 35th percentile over 551 data points. Cutoff lat = 77 (Spicher)
+
+    Maybe just use Coley and Heelis (1995)
+   a) median filter (e.g. 5 - 10 points moving average)
+   b) Cutoff latitude 70 mlat (Coley and Heelis) 
+   c) Edges defined 40% increase/decrease within 140-km
+   d) Peak must be > 2x background
+   e) Window = 1250 km (= 167 s,  = 330 pts) 
+   
+   
+
 3. Pass-normalize all the histogram plots 
 2. Try to normalize for some independent variables, e.g. MLT, location etc?
