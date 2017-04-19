@@ -14,7 +14,6 @@ import matplotlib
 import socket
 
 
-<<<<<<< HEAD
 def main(
         starttime = dt.datetime(2016, 5, 8, 0, 0, 0),
           endtime = dt.datetime(2016, 5, 9, 0, 0, 0),
