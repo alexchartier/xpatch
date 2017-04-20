@@ -46,8 +46,9 @@ def main():
     # plot_hist(patch_ct)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
-    # plot_mlt(patch_ct, norm_ct)
-    plot_polar(patch_ct, crd='mag')
+    # plot_ut(patch_ct, norm_ct)
+    plot_mlt(patch_ct, norm_ct)
+    # plot_polar(patch_ct, crd='mag')
 
 
 def plot_magnitudes(patch_ct):
@@ -60,7 +61,6 @@ def plot_magnitudes(patch_ct):
     for sat in satellites:
 
         mag = np.array(patch_ct[sat]['ne_rm']).flatten() / np.array(patch_ct[sat]['ne_bg']).flatten()
-        
         sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
         nh_ind = sat_lats > 0
         sh_ind = sat_lats < 0
@@ -89,11 +89,51 @@ def plot_magnitudes(patch_ct):
     plt.suptitle(instrument, fontweight='bold')
     plt.show() 
 
+
 def oneday_timeseries():
     import plot_timeseries
     plot_timeseries.main(instrument='Langmuir Probe')
 
-def plot_mlt(patch_ct, norm_ct, sats=['A']):
+
+def plot_ut(patch_ct, norm_ct, sats=['A', 'B']):
+    ct = 0  
+    hems = 'north', 'south'
+    for hem in hems:
+        ut_hist = np.zeros(norm_ct[sats[0]]['nh_mlt'][0].shape)
+        for sat in sats:
+            mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
+            mlon[mlon < 0] += 360
+            time = {}
+            ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+            sat_lats = np.squeeze(np.array(patch_ct[sat]['lat_mag']))
+            nh_ind = sat_lats > 0
+            sh_ind = sat_lats < 0
+            ut_h = ut[nh_ind] if hem == 'north' else ut[sh_ind]
+            norm = norm_ct[sat]['nh_ut'] if hem == 'north' else norm_ct[sat]['sh_ut']
+            binedges = norm[1]
+            ut_hist_sat = np.histogram(ut_h, binedges)
+            ut_hist += ut_hist_sat[0] / (norm[0] / 7200)  # Patches observed per satellite hour spent in each MLT bin
+
+        ct += 1
+        plt.subplot(1, 2, ct)
+        plt.xlim(0, 24)
+        if instrument == 'GPS':
+            plt.ylim(0, 800)
+        else:
+            plt.ylim(0, 12)
+       
+        plt.bar(binedges[:-1], ut_hist, width=np.diff(binedges))
+        plt.xlabel('UT Hour')
+        if np.mod(ct, 2) != 0:
+            plt.ylabel('Patch count / hour')
+        plt.grid()
+        plt.title('%s hemisphere' % (hem))
+
+    plt.suptitle(instrument, fontweight='bold')
+    plt.show()
+                
+
+def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
     ct = 0  
     hems = 'north', 'south'
     for hem in hems:
@@ -108,6 +148,13 @@ def plot_mlt(patch_ct, norm_ct, sats=['A']):
             sat_lats = np.squeeze(np.array(patch_ct[sat]['lat_mag']))
             nh_ind = sat_lats > 0
             sh_ind = sat_lats < 0
+            if (hem == 'south') and (sat == 'A'):  # Store a couple of things for the 15-16 MLT plots coming up
+                times = np.squeeze(np.array(patch_ct[sat]['times']))
+                glon = np.squeeze(np.array(patch_ct[sat]['lon_geo']))
+                sh_15ind = np.logical_and(np.logical_and(mlt > 15, mlt < 16), sh_ind)
+                times_15mlt = times[sh_15ind]
+                glon_15mlt = glon[sh_15ind]
+
             mlt_h = mlt[nh_ind] if hem == 'north' else mlt[sh_ind]
             norm = norm_ct[sat]['nh_mlt'] if hem == 'north' else norm_ct[sat]['sh_mlt']
             binedges = norm[1]
@@ -131,7 +178,26 @@ def plot_mlt(patch_ct, norm_ct, sats=['A']):
 
     plt.suptitle(instrument, fontweight='bold')
     plt.show()
-                
+
+    # 15 MLT spike plot 
+    plt.subplot(1, 2, 1)
+    plt.hist([t.hour for t in times_15mlt], np.arange(0, 24.1), color='g'); 
+    plt.xlim(0, 24)
+    plt.ylim(0, 36)
+    plt.xlabel('UT hour')
+    plt.ylabel('Patches detected')
+    plt.title('(a)')
+    plt.grid()
+    
+    plt.subplot(1, 2, 2)
+    plt.hist(glon_15mlt, np.arange(-180, 180.1, 15), color='y')
+    plt.xlim(-180, 180)
+    plt.ylim(0, 36)
+    plt.xlabel('geo. lon. (deg.)')
+    plt.title('(b)')
+    plt.grid()
+
+    plt.show()               
 
 def plot_hist(patch_ct, timestep=dt.timedelta(days=5)):
     ct = 0
