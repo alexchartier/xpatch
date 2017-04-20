@@ -19,7 +19,7 @@ import downloader
 instrument = 'lp'
 if instrument == 'gps':
     servername = 'data/swarm_server_names.txt'
-    dl_dir = '~/xpatch/data/swarm_tec/'
+    dl_dir = './data/swarm_tec/'
     # dl_dir = '/Volumes/Seagate/data/swarm/gps_tec/2015'
 elif instrument == 'lp':
     servername = 'data/swarm_lp.txt'
