@@ -40,21 +40,20 @@ def main(ipath='./data/swarm_lp/',
             try:
                 fname = glob.glob(time.strftime(fname_format))[0]
                 vals[sat] = proc_swarm_lp.load_lp(fname)
-                pass_ct[sat] = count_passes(vals[sat])
-                # pass_norm[sat] = norm_passes(vals[sat])
+                # pass_ct[sat] = count_passes(vals[sat])
+                pass_norm[sat] = norm_passes(vals[sat])
             except:
                 print('Could not count passes for satellite %s on %s' % (sat, timestr))
 
         if save:
-            fout = opath + time.strftime('/pass_%Y%m%d.pkl')
-            pdb.set_trace()
-            with open(fout, 'wb') as f:
-                pickle.dump(pass_ct, f)
-            print('Saving %s' % fout)
-            #  fnorm_out = opath + time.strftime('/pass_norm_%Y%m%d.pkl')
-            # with open(fnorm_out, 'wb') as f:
-            #     pickle.dump(pass_norm, f)
-            # print('Saving %s' % fnorm_out)
+            # fout = opath + time.strftime('/pass_%Y%m%d.pkl')
+            # with open(fout, 'wb') as f:
+            #     pickle.dump(pass_ct, f)
+            # print('Saving %s' % fout)
+            fnorm_out = opath + time.strftime('/pass_norm_%Y%m%d.pkl')
+            with open(fnorm_out, 'wb') as f:
+                pickle.dump(pass_norm, f)
+            print('Saving %s' % fnorm_out)
         time += dt.timedelta(days=1)
 
 
@@ -62,7 +61,8 @@ def get_ct(ipath='./data/pass_ct/pass_%Y%m%d.pkl',
                  time=dt.datetime(2016, 1, 1), 
                  step=dt.timedelta(days=1),
               endtime=dt.datetime(2017, 1, 1), 
-                 sats=['A', 'B', 'C']):
+                 sats=['A', 'B', 'C'], 
+                  crd='mag'):
     pass_count = {}
     for sat in sats:
         pass_count[sat] = {}
@@ -73,9 +73,10 @@ def get_ct(ipath='./data/pass_ct/pass_%Y%m%d.pkl',
         for key, val in pass_ct.items():
             for k in ['times', 'hem']:
                 try:
-                    pass_count[key][k] = np.append(pass_count[key][k], val[k])
+                    pass_count[key][k] = np.append(pass_count[key][k], val[crd][k])
                 except:
-                    pass_count[key][k] = val[k]
+                    pdb.set_trace()
+                    pass_count[key][k] = val[crd][k]
         time += dt.timedelta(days=1)
     return pass_count
 
@@ -134,13 +135,16 @@ def norm_passes(vals, lat_cutoff=70):
     
     norm_params['nh_mlt'] = np.histogram(mlt[np.logical_and(latind, nhind)], np.arange(0, 24.1, 1))
     norm_params['sh_mlt'] = np.histogram(mlt[np.logical_and(latind, shind)], np.arange(0, 24.1, 1))
+    norm_params['nh_ut'] = np.histogram(ut[np.logical_and(latind, nhind)], np.arange(0, 24.1, 1))
+    norm_params['sh_ut'] = np.histogram(ut[np.logical_and(latind, shind)], np.arange(0, 24.1, 1))
     norm_params['nh_mlon'] = np.histogram(vals['lon_mag'][np.logical_and(latind, nhind)], np.deg2rad(np.arange(-5, 365.1, 10)))
     norm_params['sh_mlon'] = np.histogram(vals['lon_mag'][np.logical_and(latind, shind)], np.deg2rad(np.arange(-5, 365.1, 10)))
     return norm_params 
 
 
-def count_passes(vals, crdtype=['geo', 'mag']):
+def count_passes(vals, crdtype='mag'):
     # Transform lats/lons to magnetic 
+    pdb.set_trace()  # NOTE: Not currently working. Look for an earlier commit to use
     vals['lat_geo'] *= np.pi / 180
     vals['lon_geo'][vals['lon_geo'] < 0] += 360
     vals['lon_geo'] *= np.pi / 180
@@ -148,12 +152,14 @@ def count_passes(vals, crdtype=['geo', 'mag']):
                           vals['lon_geo'], from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lon_mag'][vals['lon_mag'] < 0] += 2 * np.pi
     
-    latbins = np.deg2rad(np.arange(-91, 91.1, 2)) 
-    lonbins = np.deg2rad(np.arange(-5, 365.1, 10))
     passes = {}
-    for crd in crdtype:
-        counts = np.histogram2d(vals['lat_' + crd], vals['lon_' + crd], np.array((latbins, lonbins)))
-        passes[crd] = counts
+    utbins = np.arange(0, 24.1)
+    hems = {'nh': vals['lat_mag'] >= np.deg2rad(70),
+            'sh': vals['lat_mag'] <= np.deg2rad(-70)}
+    vals['ut'] = np.array([t.hour + t.minute / 60 for t in vals['times']])
+    for hem, hemind in hems.items():
+        pdb.set_trace()
+        passes[hem] = np.histogram(vals['ut'][hemind], binedges=utbins) 
 
     return passes
 
