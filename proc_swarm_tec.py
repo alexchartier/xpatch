@@ -30,16 +30,16 @@ import physics
 import socket
 
 def main(
-        time=dt.datetime(2015, 12, 20),
+        time=dt.datetime(2014, 8, 13),
         step=dt.timedelta(days=1),
-        endtime=dt.datetime(2015, 12, 20),
+        endtime=dt.datetime(2017, 7, 1),
         sats=['A', 'B', 'C'],
         save=True
         ):
 
     if socket.gethostname() == 'chartat1-ml2':
-        ipath = '/Volumes/Seagate/data/swarm/gps_tec/%Y/'
-        opath = '/Volumes/Seagate/data/swarm/proc/'
+        ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
+        opath = '/Volumes/Seagate/data/swarm/proc_gps/'
     elif socket.gethostname() == 'chartat1-ml1':
         ipath = 'data/swarm_tec/'
         opath = 'data/proc_gps/'
