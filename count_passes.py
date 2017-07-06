@@ -19,11 +19,11 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 import plot_patch_ct
 
-def main(ipath='./data/swarm_lp/',
-         opath='./data/pass_ct/', 
+def main(ipath='/Volumes/Seagate/data/swarm/lp/',
+         opath='/Volumes/Seagate/data/swarm/pass_ct/', 
          time=dt.datetime(2016, 1, 1), 
          step=dt.timedelta(days=1),
-         endtime=dt.datetime(2017, 1, 1), 
+         endtime=dt.datetime(2017, 7, 1), 
          sats=['A', 'B', 'C'],
          save=True):
 
@@ -130,6 +130,7 @@ def norm_passes(vals, lat_cutoff=70):
     endtime = dt.datetime(2016, 12, 31) 
     doy = np.array([time.timetuple().tm_yday for time in vals['times']])
     nbins = round((endtime - starttime + dt.timedelta(days=1)) / timestep)
+    pdb.set_trace()
     norm_params['nh_times'] = np.histogram(doy[np.logical_and(latind, nhind)], bins=nbins)
     norm_params['sh_times'] = np.histogram(doy[np.logical_and(latind, shind)], bins=nbins)
     

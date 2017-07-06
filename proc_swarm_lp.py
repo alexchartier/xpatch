@@ -17,13 +17,13 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 
 
-def main(ipath='./data/swarm_lp/',
-         opath='./data/proc_lp/', 
+def main(ipath='/Volumes/Seagate/data/swarm/lp/',
+         opath='/Volumes/Seagate/data/swarm/proc_lp/', 
          time=dt.datetime(2016, 1, 1),
          step=dt.timedelta(days=1),
-         endtime=dt.datetime(2017, 1, 1),
+         endtime=dt.datetime(2017, 7, 1),
          cutoff_crd='mag',
-         lat_cutoff=77,
+         lat_cutoff=70,
          sats = ['A', 'B', 'C'],
          save=True,
          approach='coley'):
@@ -80,7 +80,7 @@ def coley_patches(vals, lat_cutoff=70, window_sec=165, cadence_sec=0.5, filter_p
 
     # Shorten all the other datasets to match ne_rm
     for key, val in vals.items():
-        vals[key] = val[filter_pts / 2: - filter_pts / 2 + 1]
+        vals[key] = val[int(filter_pts / 2): - int(filter_pts / 2) + 1]
     vals['ne_rm'] = ne_rm
 
     # Reject low-latitude data

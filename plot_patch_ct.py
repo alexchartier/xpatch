@@ -5,6 +5,7 @@ Script to plot the output of the SWARM patch counter (either TEC or LP)
 """
 import pdb
 import matplotlib.pyplot as plt
+import matplotlib
 import pickle
 import collections
 import datetime as dt
@@ -25,8 +26,8 @@ cutoff = 70
 
 # Langmuir Probe
 if instrument == 'Langmuir Probe':
-    fin = './data/proc_lp/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % cutoff
-    norm_fin = './data/pass_ct/pass_norm_%Y%m%d.pkl'
+    fin = '/Volumes/Seagate/data/swarm/proc_lp/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % cutoff
+    norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d.pkl'
     colour = 'b'
 
 elif instrument == 'GPS':
@@ -35,7 +36,7 @@ elif instrument == 'GPS':
         # Work GPS
         fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
 
-    elif socket.gethostname() == 'chartat1-ml2':
+    elif socket.gethostname() == 'chartat1-ml1':
         # Home GPS
         fin = './gps_proc/patch_ct_%Y%m%d.pkl'
 
@@ -43,6 +44,7 @@ elif instrument == 'GPS':
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
     norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime)
+    plot_ut_doy(patch_ct, norm_ct)
     # plot_hist(patch_ct)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
@@ -95,14 +97,48 @@ def oneday_timeseries():
     plot_timeseries.main(instrument='Langmuir Probe')
 
 
+def plot_ut_doy(patch_ct, norm_ct, sats=['A', 'B']):
+    ct = 0  
+    hems = 'north', 'south'
+    for hem in hems:
+        ut_hist = np.zeros(norm_ct[sats[0]]['nh_mlt'][0].shape)
+        for sat in sats:
+            sat_lats = np.squeeze(np.array(patch_ct[sat]['lat_mag']))
+            nh_ind = sat_lats > 0
+            sh_ind = sat_lats < 0
+            month = np.array([t[0].month for t in patch_ct[sat]['times']])
+            month_h = month[nh_ind] if hem == 'north' else month[sh_ind]
+            ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
+            ut_h = ut[nh_ind] if hem == 'north' else ut[sh_ind]
+
+            utbins = np.arange(0, 24.1)
+            monthbins = np.arange(1, 13.1)
+            H, xedges, yedges = np.histogram2d(month_h, ut_h, bins=(monthbins, utbins))
+            X, Y = np.meshgrid(monthbins, utbins)
+
+            ct += 1
+            plt.subplot(len(hems), len(sats), ct)
+            my_cmap = matplotlib.cm.get_cmap('viridis')
+            my_cmap.set_under('w')
+            plt.pcolormesh(X, Y, H.T, vmin=0, vmax=40, cmap=my_cmap)
+            plt.colorbar()
+            plt.title('%s hemisphere, satellite %s' % (hem, sat))
+            plt.xlim((monthbins[0], monthbins[-1]))
+            plt.ylim((utbins[0], utbins[-1]))
+            if ct > 2:
+                plt.xlabel('month')
+            if np.mod(ct, 2) != 0:
+                plt.ylabel('UT')
+
+    plt.show()
+
+
 def plot_ut(patch_ct, norm_ct, sats=['A', 'B']):
     ct = 0  
     hems = 'north', 'south'
     for hem in hems:
         ut_hist = np.zeros(norm_ct[sats[0]]['nh_mlt'][0].shape)
         for sat in sats:
-            mlon = np.squeeze(np.array(patch_ct[sat]['lon_mag']))
-            mlon[mlon < 0] += 360
             time = {}
             ut = np.array([t[0].hour + t[0].minute / 60 for t in patch_ct[sat]['times']])
             sat_lats = np.squeeze(np.array(patch_ct[sat]['lat_mag']))

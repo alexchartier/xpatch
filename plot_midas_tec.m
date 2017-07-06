@@ -14,6 +14,7 @@ after = 10/60/24;
 lat_cutoff = 45; 
 crd = 'geo';
 % crd = 'mag';
+crd = 'geo';
 
 %% load
 D = tec(load(filename(IPath, Time)));
@@ -34,13 +35,13 @@ m_proj('Stereographic', 'latitude', 90, 'radius', 40, 'rotation', 90)
 
 [~, hC] = m_contourf(Lon, Lat, squeeze(D.F), 100);
 set(hC,'LineStyle','none')
-m_coast('color', 'w', 'LineWidth', 1.2)
+m_coast('color', 'w', 'LineWidth', 2)
 title(filename('{dd/mm/yyyy HH:MM UT}                                            ', D.Time))
 caxis([0 15]) % side colour axis
 h = colorbar;
 ylabel(h, 'TEC (TECU)')
 
-m_grid('color', 'k', 'FontSize', 20)
+m_grid('color', 'k', 'FontSize', 20)  % TODO: ticks every 10 degrees
 set(gca, 'FontSize', 20)
 title(filename('{yyyy/mm/dd HH:MM}UT', Time))
 % blackline = m_plot(Swarm_lon, Swarm_lat, 'kx');
