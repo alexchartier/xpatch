@@ -18,24 +18,28 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 import socket
 
+
 def main(save=False, plot=True):
+    time=dt.datetime(2016, 1, 1)
+    endtime=dt.datetime(2016, 12, 31)
 
     if save:
-        save_bkgd_tec()
+        save_bkgd_tec(time=time, endtime=endtime)
 
     if plot:
-        plot_bkgd_tec()
+        plot_bkgd_tec(time=time, endtime=endtime)
+
 
 def plot_bkgd_tec(
                   time=dt.datetime(2016, 1, 1),
                   step=dt.timedelta(days=1),
-                  endtime=dt.datetime(2016, 1, 20),
+                  endtime=dt.datetime(2016, 12, 31),
                   sats=['A', 'B'],
                   hems=['nh', 'sh'],
                  ):
  
     if socket.gethostname() == 'chartat1-ml2':
-        ipath = '/Volumes/Seagate/data/swarm/proc_gps/bkgd_tec_%Y%m%d.pkl'
+        ipath = '/Volumes/Seagate/data/swarm/proc_bkgd_tec/bkgd_tec_%Y%m%d.pkl'
     elif socket.gethostname() == 'chartat1-ml1':
         ipath = 'data/proc_bkgd_tec/bkgd_tec_%Y%m%d.pkl'   
 
@@ -62,13 +66,23 @@ def plot_bkgd_tec(
         for hem in hems: 
             plt.subplot(len(sats), len(hems), ct)
             tec_ts[sat][hem] = np.array(tec_ts[sat][hem])
-            plt.plot_date(times, tec_ts[sat][hem])
+            plt.plot_date(times, tec_ts[sat][hem], )
             plt.title('sat %s %s hemisphere' % (sat, hem))
-            plt.xlabel('date')
             plt.ylabel('average slant TEC (TECU)')
+            plt.ylim([0, 12])
+            plt.grid()
+            frame = plt.gca()
+            xloc = plt.MaxNLocator(4)
+            frame.xaxis.set_major_locator(xloc)
+
+            from matplotlib.dates import  DateFormatter
+            frame.xaxis.set_major_formatter(DateFormatter('%b'))
+            if ct < 3:
+                frame.axes.xaxis.set_ticklabels([])
             ct += 1
     
     plt.show()
+ 
  
 def save_bkgd_tec(
                   time=dt.datetime(2016, 1, 1),
@@ -79,7 +93,7 @@ def save_bkgd_tec(
 
     if socket.gethostname() == 'chartat1-ml2':
         ipath = '/Volumes/Seagate/data/swarm/gps_tec/'
-        opath = '/Volumes/Seagate/data/swarm/proc_gps/'
+        opath = '/Volumes/Seagate/data/swarm/proc_bkgd_tec/'
     elif socket.gethostname() == 'chartat1-ml1':
         ipath = 'data/swarm_tec/'
         opath = 'data/proc_bkgd_tec/'

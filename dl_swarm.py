@@ -22,14 +22,18 @@ if instrument == 'gps':
     servername = 'data/swarm_server_names.txt'
     # dl_dir = './data/swarm_tec/'
     dl_dir = '/Volumes/Seagate/data/swarm/gps_tec/'
+
 elif instrument == 'lp':
     servername = 'data/swarm_lp.txt'
-
     dl_dir = '/Volumes/Seagate/data/swarm/lp/'
+    servername = 'data/swarm_lp_adv.txt'
+    dl_dir = '/Volumes/Seagate/data/swarm/lp_adv/'
+
 elif instrument == 'efi':
     servername = 'data/swarm_efi.txt'
     dl_dir = '/Volumes/usb/data/swarm_efi/'
-dl_times = [datetime.datetime(2016, 1, 1), datetime.datetime(2017, 7, 1)]
+
+dl_times = [datetime.datetime(2014, 1, 1), datetime.datetime(2016, 6, 1)]
 dl_days = downloader.dl_data(dl_times, dl_dir, servername, datatype='swarm', dirnames='not_smart')
 
 

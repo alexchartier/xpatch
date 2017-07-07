@@ -30,10 +30,10 @@ import physics
 import socket
 
 def main(
-        time=dt.datetime(2014, 8, 13),
+        time=dt.datetime(2015, 3, 1),
         step=dt.timedelta(days=1),
-        endtime=dt.datetime(2017, 7, 1),
-        sats=['A', 'B', 'C'],
+        endtime=dt.datetime(2016, 1, 1),
+        sats=['A', 'B'],
         save=True
         ):
 

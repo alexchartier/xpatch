@@ -130,7 +130,6 @@ def norm_passes(vals, lat_cutoff=70):
     endtime = dt.datetime(2016, 12, 31) 
     doy = np.array([time.timetuple().tm_yday for time in vals['times']])
     nbins = round((endtime - starttime + dt.timedelta(days=1)) / timestep)
-    pdb.set_trace()
     norm_params['nh_times'] = np.histogram(doy[np.logical_and(latind, nhind)], bins=nbins)
     norm_params['sh_times'] = np.histogram(doy[np.logical_and(latind, shind)], bins=nbins)
     
