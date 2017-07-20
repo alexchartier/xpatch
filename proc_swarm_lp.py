@@ -17,11 +17,11 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import physics
 
 
-def main(ipath='/Volumes/Seagate/data/swarm/lp_adv/',
-         opath='/Volumes/Seagate/data/swarm/proc_lp_adv/', 
-         time=dt.datetime(2014, 1, 1),
+def main(ipath='/Volumes/Seagate/data/swarm/lp/',
+         opath='/Volumes/Seagate/data/swarm/proc_lp/', 
+         time=dt.datetime(2017, 1, 1),
          step=dt.timedelta(days=1),
-         endtime=dt.datetime(2016, 7, 1),
+         endtime=dt.datetime(2017, 7, 1),
          cutoff_crd='mag',
          lat_cutoff=70,
          sats = ['A', 'B', 'C'],

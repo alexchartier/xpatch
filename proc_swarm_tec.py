@@ -30,9 +30,9 @@ import physics
 import socket
 
 def main(
-        time=dt.datetime(2015, 3, 1),
+        time=dt.datetime(2014, 1, 1),
         step=dt.timedelta(days=1),
-        endtime=dt.datetime(2016, 1, 1),
+        endtime=dt.datetime(2014, 8, 1),
         sats=['A', 'B'],
         save=True
         ):
@@ -52,7 +52,7 @@ def main(
 
         for sat in sats:
             print('Satellite %s' % sat)
-            fname_format = time.strftime(ipath) + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.DBL'
+            fname_format = time.strftime(ipath) + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.cdf'
             try:
                 fname = glob.glob(time.strftime(fname_format))[0]
             except:
@@ -90,7 +90,6 @@ def count_patches(fname, lat_cutoff=55, elev_cutoff=25, TEC_abs_cutoff=4, TEC_re
     window = dt.timedelta(seconds=window_sec)  
     cadence = dt.timedelta(seconds=cadence_sec) 
     vals, vars = get_swarm_vals(fname)
-
     # Take out values below elevation and latitude cutoffs 
     index = np.logical_and(vals['elev'] >= elev_cutoff, np.abs(vals['lat_mag']) > lat_cutoff)
     for key, val in vars.items():  

@@ -11,7 +11,7 @@
 # {GPSW} - GPS week
 
 # Server
-esa_tec, ftp://swarm-diss.eo.esa.int/, /Level2daily/Entire_mission_data/TEC/TMS/Sat_A/ ; /Level2daily/Entire_mission_data/TEC/TMS/Sat_B/ ; /Level2daily/Entire_mission_data/TEC/TMS/Sat_C/ , *%Y%m%d*.ZIP, swarm0522, nducadia13
 
+esa_lp, ftp://swarm-diss.eo.esa.int/, /Advanced/Plasma_Data/2_Hz_Langmuir_Probe_Extended_Dataset/Sat_A/ ; /Advanced/Plasma_Data/2_Hz_Langmuir_Probe_Extended_Dataset/Sat_B/ ; /Advanced/Plasma_Data/2_Hz_Langmuir_Probe_Extended_Dataset/Sat_C/ , *%Y%m%d*.ZIP, swarm0522, nducadia13
 
 

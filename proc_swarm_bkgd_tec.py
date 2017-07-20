@@ -10,6 +10,7 @@ import numpy as np
 import scipy as sp
 import datetime as dt
 import matplotlib.pyplot as plt
+import matplotlib
 import glob
 import pickle
 import sys 
@@ -19,9 +20,9 @@ import physics
 import socket
 
 
-def main(save=False, plot=True):
-    time=dt.datetime(2016, 1, 1)
-    endtime=dt.datetime(2016, 12, 31)
+def main(save=True, plot=True):
+    time=dt.datetime(2014, 8, 1)
+    endtime=dt.datetime(2017, 6, 29)
 
     if save:
         save_bkgd_tec(time=time, endtime=endtime)
@@ -62,25 +63,52 @@ def plot_bkgd_tec(
         t += step
   
     ct = 1 
-    for sat in sats: 
-        for hem in hems: 
+    for hem in hems: 
+        for sat in sats: 
             plt.subplot(len(sats), len(hems), ct)
             tec_ts[sat][hem] = np.array(tec_ts[sat][hem])
-            plt.plot_date(times, tec_ts[sat][hem], )
+            start_year = times[0].year
+            doy = [time.timetuple().tm_yday + (time.year - start_year) * 365 for time in times]
+            plt.plot(doy, tec_ts[sat][hem], 'k')
+    
+            ax = plt.gca()
+            ax.set_xticks(ax.get_xticks()[::2])
             plt.title('sat %s %s hemisphere' % (sat, hem))
-            plt.ylabel('average slant TEC (TECU)')
-            plt.ylim([0, 12])
+            ymax = 18 
+            plt.ylim([0, ymax])
             plt.grid()
-            frame = plt.gca()
-            xloc = plt.MaxNLocator(4)
-            frame.xaxis.set_major_locator(xloc)
+            doymin = min(doy)
+            doymax = max(doy)
+            plt.ylim(0, ymax)
+            plt.xlim(0, doymax)
+            d = 183 
+            while d <= doymax: 
+                if d == 356:
+                    plt.plot([d, d], [0, doymax], 'b--', label='June Solstice')
+                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--', label='December Solstice')
+                else:
+                    plt.plot([d, d], [0, doymax], 'b--')
+                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--')
+                d += 365 
 
-            from matplotlib.dates import  DateFormatter
-            frame.xaxis.set_major_formatter(DateFormatter('%b'))
+            frame = plt.gca()
+
+            if ct == 2:
+                plt.legend()
+            if np.mod(ct, 2) == 0:
+                frame.axes.yaxis.set_ticklabels([])
+            else:
+                plt.ylabel('average slant TEC (TECU)')
             if ct < 3:
                 frame.axes.xaxis.set_ticklabels([])
+            else:
+                plt.xlabel('Days after 1 January %i' % start_year)
             ct += 1
-    
+    font = {'family' : 'normal',
+            'weight' : 'bold',
+            'size'   : 15}
+    matplotlib.rc('font', **font) 
+
     plt.show()
  
  
@@ -97,16 +125,16 @@ def save_bkgd_tec(
     elif socket.gethostname() == 'chartat1-ml1':
         ipath = 'data/swarm_tec/'
         opath = 'data/proc_bkgd_tec/'
-    bkgd_tec = {}
     
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
         print(timestr)
         vals = {}
+        bkgd_tec = {}
 
         for sat in sats:
             print('Satellite %s' % sat)
-            fname_format = time.strftime(ipath) + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.DBL'
+            fname_format = time.strftime(ipath) + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.cdf'
             try:
                 fname = glob.glob(time.strftime(fname_format))[0]
             except:
@@ -136,6 +164,7 @@ def calc_bkgd_tec(fname, lat_cutoff=55, elev_cutoff=25):
     """ 
     vals, vars = get_swarm_vals(fname)
 
+    pdb.set_trace()
     # Take out values below elevation and latitude cutoffs 
     index = np.logical_and(vals['elev'] >= elev_cutoff, np.abs(vals['lat_mag']) > lat_cutoff)
     for key, val in vars.items():  
