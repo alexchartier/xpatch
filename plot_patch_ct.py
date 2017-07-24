@@ -16,8 +16,8 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
 import physics
 import count_passes
 
-starttime = dt.datetime(2015, 1, 1)
-endtime = dt.datetime(2017, 1, 1)
+starttime = dt.datetime(2014, 8, 1)
+endtime = dt.datetime(2017, 7, 1)
 satellites = 'A', 'B'
 
 approach = 'coley'
@@ -25,20 +25,21 @@ instrument = 'GPS' # 'Langmuir Probe'  # or 'GPS'
 
 # Langmuir Probe
 if instrument == 'Langmuir Probe':
-    cutoff = 70
-    fin = '/Volumes/Seagate/data/swarm/proc_lp_comb/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % cutoff
-    norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d' + '_%ideg.pkl' % cutoff
+    lat_cutoff = 70
+    fin = '/Volumes/Seagate/data/swarm/proc_lp_comb/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % lat_cutoff
+    norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d' + '_%ideg.pkl' % lat_cutoff
     colour = 'k'
     freq = 2  # hz
 
 elif instrument == 'GPS':
-    cutoff = 55
+    lat_cutoff = 55
+    elev_cutoff = 25
     colour = 'k'
     freq = 1  # hz
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
         fin = '/Volumes/Seagate/data/swarm/proc_gps/patch_ct_%Y%m%d.pkl'
-        norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d_' + '%ideg.pkl' % cutoff
+        norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d_' + '%ideg.pkl' % lat_cutoff
 
     elif socket.gethostname() == 'chartat1-ml1':
         # Home GPS
@@ -48,9 +49,24 @@ elif instrument == 'GPS':
 
 def main():
     patch_ct = get_patch_ct(starttime, endtime, satellites, fin)
+    if instrument == 'GPS':
+        for sat in satellites:
+            elev_ind = np.array(patch_ct[sat]['elev']) > elev_cutoff
+            for key, val in patch_ct[sat].items():
+                if key not in ('t1', 't2', 'tec_b1', 'tec_b2', 'params'):
+                    if len(np.array(val).shape) == 1:
+                        val = np.expand_dims(np.array(val), 1)  # expand 1D variables
+                    patch_ct[sat][key] = np.array(val)[elev_ind]
+    else:
+        for sat in sats:
+            for key, val in patch_ct[sat].items():
+                patch_ct[sat][key] = np.array(val)
+        
+            
+            
     norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
-    plot_t_doy(patch_ct, norm_ct, vartype='lt')
-    # plot_hist(patch_ct)
+    # plot_t_doy(patch_ct, norm_ct, vartype='lt')
+    plot_hist(patch_ct)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
     # plot_ut(patch_ct, norm_ct)
@@ -269,42 +285,55 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5)):
     hems = 'north', 'south'
     for hem in hems:
         for sat in satellites:
-            start_year = patch_ct[sat]['times'][0][0].year
-            doy = np.array([time[0].timetuple().tm_yday + (time[0].year - start_year) * 365 for time in patch_ct[sat]['times']])
+            day_ct = np.array([(time - starttime).days for time in patch_ct[sat]['times']])
             nbins = round((endtime - starttime + dt.timedelta(days=1)) / timestep)
-            sat_lats = np.array([x[0] for x in patch_ct[sat]['lat_geo']])
+            sat_lats = np.squeeze(patch_ct[sat]['lat_geo'])
             nh_ind = sat_lats > 0
             sh_ind = sat_lats < 0
             ct += 1
             plt.subplot(len(satellites), 2, ct)
-            doy_h = doy[nh_ind] if hem == 'north' else doy[sh_ind]
-            plt.hist(doy_h, color=colour, bins=nbins)
+            day_ct_h = day_ct[nh_ind] if hem == 'north' else day_ct[sh_ind]
+            plt.hist(day_ct_h, color=colour, bins=nbins)
 
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
             if np.mod(ct, 2) != 0:
                 plt.ylabel('Patch count / 5 days')
             frame = plt.gca()
-            ymax = 200
-            doymin = min(doy)
-            doymax = max(doy)
+            ymax = 250
+            day_ctmin = min(day_ct)
+            day_ctmax = max(day_ct)
             plt.ylim(0, ymax)
-            plt.xlim(0, doymax)
-            d = 183
-            while d <= doymax: 
-                if d == 183:
-                    plt.plot([d, d], [0, doymax], 'b--', label='June Solstice')
-                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--', label='December Solstice')
+            plt.xlim(0, day_ctmax)
+  
+            yr = starttime.year 
+            dec_sols = []
+            jun_sols = []
+            while yr < endtime.year: 
+                dec_sols.append((dt.datetime(yr, 12, 21) - starttime).days)
+                jun_sols.append((dt.datetime(yr, 6, 21) - starttime).days)
+                yr += 1
+
+            cnt = 1
+            for d in jun_sols:
+                if cnt == 1:
+                    plt.plot([d, d], [0, day_ctmax], 'b--', label='June Solstice')
+                    cnt += 1
                 else:
-                    plt.plot([d, d], [0, doymax], 'b--')
-                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--')
-                d += 365
+                    plt.plot([d, d], [0, day_ctmax], 'b--')
+             
+            for d in dec_sols:
+                if cnt == 2:
+                    plt.plot([d, d], [0, day_ctmax], 'r--', label='December Solstice')
+                    cnt += 1
+                else:
+                    plt.plot([d, d], [0, day_ctmax], 'r--')
 
             if ct == 2:
                 plt.legend()
             if np.mod(ct, 2) == 0: 
                 frame.axes.yaxis.set_ticklabels([])
             if ct >= 3:
-                plt.xlabel('Days from 1 January 2014')
+                plt.xlabel(starttime.strftime('Days from %d %b %Y'))
             else:
                 frame.axes.xaxis.set_ticklabels([])
             plt.grid()

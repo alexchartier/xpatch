@@ -20,7 +20,7 @@ import physics
 import socket
 
 
-def main(save=True, plot=True):
+def main(save=False, plot=True):
     time=dt.datetime(2014, 8, 1)
     endtime=dt.datetime(2017, 6, 29)
 
@@ -67,8 +67,8 @@ def plot_bkgd_tec(
         for sat in sats: 
             plt.subplot(len(sats), len(hems), ct)
             tec_ts[sat][hem] = np.array(tec_ts[sat][hem])
-            start_year = times[0].year
-            doy = [time.timetuple().tm_yday + (time.year - start_year) * 365 for time in times]
+            
+            doy = [(t - time).days for t in times]
             plt.plot(doy, tec_ts[sat][hem], 'k')
     
             ax = plt.gca()
@@ -81,20 +81,36 @@ def plot_bkgd_tec(
             doymax = max(doy)
             plt.ylim(0, ymax)
             plt.xlim(0, doymax)
-            d = 183 
-            while d <= doymax: 
-                if d == 356:
+
+
+            yr = time.year
+            dec_sols = []
+            jun_sols = []
+
+            while yr < endtime.year:
+                dec_sols.append((dt.datetime(yr, 12, 21) - time).days)
+                jun_sols.append((dt.datetime(yr, 6, 21) - time).days)
+                yr += 1
+
+            cnt = 1
+            for d in jun_sols:
+                if cnt == 1:
                     plt.plot([d, d], [0, doymax], 'b--', label='June Solstice')
-                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--', label='December Solstice')
+                    cnt += 1
                 else:
                     plt.plot([d, d], [0, doymax], 'b--')
-                    plt.plot([d + 365 / 2, d + 365 / 2], [0, doymax], 'r--')
-                d += 365 
 
-            frame = plt.gca()
+            for d in dec_sols:
+                if cnt == 2:
+                    plt.plot([d, d], [0, doymax], 'r--', label='December Solstice')
+                    cnt += 1
+                else:
+                    plt.plot([d, d], [0, doymax], 'r--')
 
             if ct == 2:
                 plt.legend()
+
+            frame = plt.gca()
             if np.mod(ct, 2) == 0:
                 frame.axes.yaxis.set_ticklabels([])
             else:
@@ -102,7 +118,7 @@ def plot_bkgd_tec(
             if ct < 3:
                 frame.axes.xaxis.set_ticklabels([])
             else:
-                plt.xlabel('Days after 1 January %i' % start_year)
+                plt.xlabel(time.strftime('Days after %d %b %Y'))
             ct += 1
     font = {'family' : 'normal',
             'weight' : 'bold',

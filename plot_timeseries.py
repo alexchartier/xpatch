@@ -15,11 +15,11 @@ import socket
 
 
 def main(
-        starttime = dt.datetime(2015, 12, 20, 16, 37, 10),
-          endtime = dt.datetime(2015, 12, 20, 17, 0, 0),
+        starttime = dt.datetime(2014, 12, 21),
+          endtime = dt.datetime(2014, 12, 21, 23, 59),
         # starttime = dt.datetime(2016, 5, 8, 16, 37, 10),
         #   endtime = dt.datetime(2016, 5, 8, 17, 0, 0),
-              sats=['B'],
+              sats=['A'],
         instrument='Langmuir Probe',
           approach='coley',
            procgps=False,
@@ -29,7 +29,7 @@ def main(
     if instrument == 'Langmuir Probe':
         import proc_swarm_lp
         patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, approach=approach, sats=sats, save=False)
-        plot_ne_timeseries(patch_ct, vals, start=starttime, stop=endtime) 
+        plot_ne_timeseries(patch_ct, vals, sat=sats[0], start=starttime, stop=endtime) 
 
     elif instrument == 'GPS':        
         import proc_swarm_tec
@@ -38,15 +38,15 @@ def main(
         else:
             vals = {}
             for sat in sats:
-                fname_format = '/Volumes/Seagate/data/swarm/gps_tec/%Y/' + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.DBL'
+                fname_format = '/Volumes/Seagate/data/swarm/gps_tec/' + 'SW_OPER_TEC%s' % sat + '*%Y%m%d*.cdf'
                 fname = glob.glob(starttime.strftime(fname_format))[0]
                 vals[sat], vars = proc_swarm_tec.get_swarm_vals(fname)
-            with open(starttime.strftime('/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'), 'rb') as f:
+            with open(starttime.strftime('/Volumes/Seagate/data/swarm/proc_gps/patch_ct_%Y%m%d.pkl'), 'rb') as f:
                 patch_ct = pickle.load(f)
-        plot_tec_timeseries(patch_ct, vals) 
+        plot_tec_timeseries(patch_ct, vals, sat=sats[0], start=starttime, stop=endtime) 
         if socket.gethostname() == 'chartat1-ml2':
             # Work GPS
-            fin = '/Volumes/Seagate/data/swarm/proc/patch_ct_%Y%m%d.pkl'
+            fin = '/Volumes/Seagate/data/swarm/proc_gps/patch_ct_%Y%m%d.pkl'
 
         elif socket.gethostname() == 'chartat1-ml1':
             # Home GPS
@@ -59,7 +59,7 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)
-    latind = mlat > 45
+    latind = np.abs(mlat) > 45
     ind = np.logical_and(latind, timeind)
     tec = vals[sat]['tec'][ind]
     ut = ut[ind]
@@ -102,6 +102,7 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     plt.ylim(0, maxval) 
     plt.ylabel(r'Total Electron Content ($10^{11} m^{-2}$)')
     plt.grid(which='both')
+    """
     t = ut.min()
     major_x = []
     while t <= ut.max():
@@ -112,6 +113,7 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     
     ax1.set_xticks(major_x)                                                       
     ax1.set_yticks(major_y)                                                       
+    """
 
     # plot magnetic latitude ticks
     ax2 = ax1.twiny()
@@ -154,19 +156,21 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     mf = plt.plot_date(utd, ne_rm, 'k', label='Median-smoothed Ne', linewidth=2)
 
     # plot peak and background Ne
-    pk = plt.plot(mdates.date2num(count['times'][0]), count['ne_rm'], 'rx', markersize=10, mew=4, label='Peak')
-    bg = plt.plot(mdates.date2num(count['times'][0]), count['ne_bg'], 'gx', label='background',  markersize=10, mew=4)
+    pk = plt.plot(mdates.date2num(np.squeeze(count['times'])), np.squeeze(count['ne_rm']), 'rx', markersize=10, mew=4, label='Peak')
+    bg = plt.plot(mdates.date2num(np.squeeze(count['times'])), np.squeeze(count['ne_bg']), 'gx', label='background',  markersize=10, mew=4)
 
     handles, labels = ax1.get_legend_handles_labels()
     ax1.legend(handles, labels)
 
-    # plot vertical lines at start and end of window
     maxval = ne.max() * 1.1
+    """
+    # plot vertical lines at start and end of window
     plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_start'][0])], [0, maxval], 'k--', mew=2)
     plt.plot([mdates.date2num(count['t_end'][0]), mdates.date2num(count['t_end'][0])], [0, maxval], 'k--', mew=2)
 
     # horizontal line between the two points
     plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_end'][0])], [count['ne_bg'], count['ne_bg']], 'g--')
+    """
 
     fig.autofmt_xdate()
     ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
@@ -175,6 +179,7 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     plt.ylabel(r'Electron density ($cm^{-3}$)')
     plt.grid(which='both')
     t = ut.min()
+    """
     major_x = []
     while t <= ut.max():
         major_x.append(t)
@@ -184,6 +189,7 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     
     ax1.set_xticks(major_x)                                                       
     ax1.set_yticks(major_y)                                                       
+    """
 
     # plot magnetic latitude ticks
     ax2 = ax1.twiny()

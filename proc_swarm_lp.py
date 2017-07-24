@@ -19,12 +19,12 @@ import physics
 
 def main(ipath='/Volumes/Seagate/data/swarm/lp/',
          opath='/Volumes/Seagate/data/swarm/proc_lp/', 
-         time=dt.datetime(2017, 1, 1),
+         time=dt.datetime(2014, 1, 1),
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2017, 7, 1),
          cutoff_crd='mag',
-         lat_cutoff=70,
-         sats = ['A', 'B', 'C'],
+         lat_cutoff=55,
+         sats = ['A', 'B'],
          save=True,
          approach='coley'):
    
@@ -135,21 +135,23 @@ def coley_patches(vals, lat_cutoff=70, window_sec=165, cadence_sec=0.5, filter_p
 
         if upgrad < edge_mag:
             continue
+        upgrad_ind = ptind
+        ptind += edge_pts
 
         # ...followed by 40% decrease over 140 km
-        downgrad = 0
+        downgrad = 1
         while (downgrad > 1 / edge_mag) and (ptind < window_pts - edge_pts):
             downgrad = ne_rm_vals[ptind + edge_pts] / ne_rm_vals[ptind] 
             ptind += 1
-
         if downgrad > 1 / edge_mag:
             continue
+        downgrad_ind = ptind
 
         # Specify background density (median over window according to Coley and Heelis)
         NEbg = np.median(ne_vals)
 
         # Check peak is 2x background
-        NEp = ne_rm_vals.max()  # Patch maximum is the highest value in the window
+        NEp = ne_rm_vals[upgrad_ind:downgrad_ind].max()  # Patch maximum is the highest value in the window
 
         # Perform relative magnitude test
         if NEp / NEbg < peak_mag:
