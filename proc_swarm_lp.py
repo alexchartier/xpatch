@@ -13,25 +13,26 @@ import glob
 import pickle
 import sys 
 import collections
-sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
+sys.path.insert(0, '/Users/chartat1/fusionpp/fusion/')
 import physics
+
 
 
 def main(ipath='/Volumes/Seagate/data/swarm/lp/',
          opath='/Volumes/Seagate/data/swarm/proc_lp/', 
-         time=dt.datetime(2014, 1, 1),
+         time=dt.datetime(2014, 8, 1),
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2017, 7, 1),
          cutoff_crd='mag',
          lat_cutoff=55,
          sats = ['A', 'B'],
          save=True,
-         approach='coley'):
+         approach='alex'):
    
     print(approach) 
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
-        print(timestr)
+        print('\n' + timestr)
         vals = {}
         patch_ct = {}    
 
@@ -44,19 +45,151 @@ def main(ipath='/Volumes/Seagate/data/swarm/lp/',
                 vals[sat]['lt'] = localtime(vals[sat])
                 if approach == 'coley':
                     patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
+                elif approach == 'alex':
+                    patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
                 else:
                     patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
             except:
                 print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
-            fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
+            fout = opath + approach + '/%i_deg/' % lat_cutoff + time.strftime('lp_%Y%m%d_' ) + '%ideg.pkl' % lat_cutoff
             with open(fout, 'wb') as f:
                 pickle.dump(patch_ct, f) 
-            print('Saving %s' % fout)
+            print('\nSaving %s' % fout)
         time += dt.timedelta(days=1)
 
     return patch_ct, vals
+
+
+def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pts=30, \
+                            edge_mag=1.4, peak_f107_mult=1000, edge_pts=36, cutoff_crd='mag'):
+    # sys.path.insert(0, '/Users/chartat1/fusionpp/utilities/python/')
+    from pyglow import pyglow
+    # Specify cutoff value according to F10.7
+    pt = pyglow.Point(vals['times'][0], 100, 0, 0)
+    assert not np.isnan(pt.f107a), 'F107a is NaN - stopping'
+    peak_mag = pt.f107a * peak_f107_mult
+
+    # Count the patches from Langmuir probe data using Coley and Heelis (1995) approach
+    window = dt.timedelta(seconds=window_sec)  
+    cadence = dt.timedelta(seconds=cadence_sec) 
+
+    # Transform lats/lons to magnetic 
+    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
+                          np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
+    vals['lat_mag'] *= 180 / np.pi
+    vals['lon_mag'] *= 180 / np.pi
+        
+    # add random lowlevel noise to the ne_vals to compensate for their low numerical precision for the filter
+    vals['ne'] += (np.random.rand(len(vals['ne'])) - 0.5) * 1E-5
+
+    # Median-filter the data to remove high frequency noise
+    idx = np.arange(filter_pts) + np.arange(len(vals['ne']) - filter_pts + 1)[:, None]
+    ne_rm = np.median(vals['ne'][idx], axis=1)
+
+    # Shorten all the other datasets to match ne_rm
+    for key, val in vals.items():
+        vals[key] = val[int(filter_pts / 2): - int(filter_pts / 2) + 1]
+    vals['ne_rm'] = ne_rm
+
+    # Reject low-latitude data
+    index = (np.abs(vals['lat_' + cutoff_crd]) > lat_cutoff)
+    vals_ind = {}
+    for key, val in vals.items():  
+        vals_ind[key] = vals[key][index]
+
+    # Initialise data storage dictionary
+    patch_ct = {}
+    for key in vals_ind.keys():
+        patch_ct[key] = []
+
+    new_vars = 'ne_rm', 'ne_bg', 't_start', 't_end'
+    for v in new_vars:
+        patch_ct[v] = []
+
+    # Convert times to integers for faster execution (datetime comparisons are slow)
+    times_sec = np.array([(t - vals_ind['times'][0]).total_seconds() for t in vals_ind['times']])
+    # Sliding window filtering
+    tind = -1
+    window_pts = window / cadence
+    while tind < len(vals_ind['times']) - window_pts:
+        tind += 1  # Has to happen at the top because we use 'continue' to escape the loop at various points
+        t = times_sec[tind]
+        sys.stdout.write("Time in seconds %s \r" % t)
+        ind = np.logical_and(times_sec >= t, times_sec <= t + window_sec)
+        sumind = ind.sum()
+        # Require full window
+        if sumind < window / cadence:  
+            # print('Incomplete window found at %s' % t)
+            tind += sumind
+            continue
+        
+        times = vals_ind['times'][ind]
+        ne_rm_vals = vals_ind['ne_rm'][ind]
+        ne_vals = vals_ind['ne'][ind]
+        mag_lats = vals_ind['lat_mag'][ind]
+
+        # Check window does not cut across a hemispheric boundary
+        lat_steps = np.diff(mag_lats)
+        if lat_steps.max() > lat_cutoff:
+            print('Found hemispheric jump at %s' % t)
+            continue
+            
+        # Check for 40% increase over 140 km...
+        upgrad = 0
+        ptind = 0
+        while (upgrad < edge_mag) and (ptind < window_pts - edge_pts):
+            upgrad = ne_rm_vals[ptind + edge_pts] / ne_rm_vals[ptind] 
+            ptind += 1
+
+        if upgrad < edge_mag:
+            continue
+        upgrad_ind = ptind
+        ptind += edge_pts
+
+        # ...followed by 40% decrease over 140 km
+        downgrad = 1
+        while (downgrad > 1 / edge_mag) and (ptind < window_pts - edge_pts):
+            downgrad = ne_rm_vals[ptind + edge_pts] / ne_rm_vals[ptind] 
+            ptind += 1
+        if downgrad > 1 / edge_mag:
+            continue
+        downgrad_ind = ptind
+
+        # Specify background density (median over window according to Coley and Heelis)
+        NEbg = np.median(ne_vals)
+
+        # Check peak is above threshold
+        NEp = ne_rm_vals[upgrad_ind:downgrad_ind].max()  # Patch maximum is the highest value in the window
+
+        # Perform abs magnitude test
+        if NEp - NEbg < peak_mag:
+            continue
+
+        # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
+        patch_index = vals_ind['ne_rm'] == NEp
+        assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
+        pdb.set_trace()
+        for key, var in vals_ind.items():
+            patch_ct[key].append(vals_ind[key][patch_index])
+        patch_ct['ne_bg'].append(NEbg)
+        patch_ct['t_start'].append(times.min())
+        patch_ct['t_end'].append(times.max())
+        print('\nFound a patch')
+        tind += sumind
+
+    # Count the patches f
+    patch_ct['params'] = {'lat_cutoff': lat_cutoff,
+                            'peak_mag': peak_mag,
+                            'edge_mag': edge_mag,
+                            'edge_pts': edge_pts,
+                          'filter_pts': filter_pts,
+                          'window_sec': window_sec,
+                         'cadence_sec': cadence_sec}
+    if len(patch_ct['lat_geo']) > 0:
+        pdb.set_trace()
+    return patch_ct
 
 
 def coley_patches(vals, lat_cutoff=70, window_sec=165, cadence_sec=0.5, filter_pts=30, \
@@ -168,7 +301,7 @@ def coley_patches(vals, lat_cutoff=70, window_sec=165, cadence_sec=0.5, filter_p
         # print('\nFound a patch')
         tind += sumind
 
-    # Count the patches f
+    # Store the count parameters
     patch_ct['params'] = {'lat_cutoff': lat_cutoff,
                             'peak_mag': peak_mag,
                             'edge_mag': edge_mag,
@@ -322,10 +455,17 @@ def load_lp(fname):
             'Radius': 'rad',  # Radial distance
             'n': 'ne',  # Electron density
             'Timestamp': 'times',  # Datetime times
-            }
+            'T_elec': 'T_elec',  # Electron temp.
+            'T_ion': 'T_ion',  # Ion temp.
+            'n_error': 'ne_err',  # Electron density error
+            }   
     vals = {}
+        
     for key, val in vars.items():
-       vals[val] = cdf[key][...]
+        try:
+            vals[val] = cdf[key][...]
+        except:
+            None
 
     return vals
 

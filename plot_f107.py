@@ -7,7 +7,7 @@ import pickle
 import matplotlib.pyplot as plt
 import matplotlib
 
-time = dt.datetime(2014, 1, 1)
+time = dt.datetime(2014, 8, 1)
 endtime = dt.datetime(2017, 7, 1)
 times = []
 f107 = []
@@ -21,7 +21,7 @@ plt.plot_date(times, f107, '-')
 plt.grid()
 plt.ylabel('81-day averaged F10.7')
 plt.ylim([0, 180])
-
+pdb.set_trace()
 from matplotlib.dates import  DateFormatter
 ax = plt.gca()
 ax.xaxis.set_major_formatter( DateFormatter('%Y/%m/%d') )

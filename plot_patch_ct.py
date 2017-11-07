@@ -17,24 +17,25 @@ import physics
 import count_passes
 
 starttime = dt.datetime(2014, 8, 1)
-endtime = dt.datetime(2017, 7, 1)
+endtime = dt.datetime(2017, 6, 1)
 satellites = 'A', 'B'
 
-approach = 'coley'
-instrument = 'GPS' # 'Langmuir Probe'  # or 'GPS'
+lat_cutoff = 55
+plot_lat_cutoff = 70
+approach = 'alex'
+instrument = 'Langmuir Probe'  # or 'GPS'
 
 # Langmuir Probe
 if instrument == 'Langmuir Probe':
-    lat_cutoff = 70
-    fin = '/Volumes/Seagate/data/swarm/proc_lp_comb/%s/' % approach + 'lp_%Y%m%d_' + '%ideg.pkl' % lat_cutoff
+    fin = '/Volumes/Seagate/data/swarm/proc_lp/%s/%i_deg/' % (approach, lat_cutoff) \
+          + 'lp_%Y%m%d_' + '%ideg.pkl' % lat_cutoff    
     norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d' + '_%ideg.pkl' % lat_cutoff
-    colour = 'k'
+    colour = 'g'
     freq = 2  # hz
 
 elif instrument == 'GPS':
-    lat_cutoff = 55
     elev_cutoff = 25
-    colour = 'k'
+    colour = 'y'
     freq = 1  # hz
     if socket.gethostname() == 'chartat1-ml2':
         # Work GPS
@@ -58,13 +59,17 @@ def main():
                         val = np.expand_dims(np.array(val), 1)  # expand 1D variables
                     patch_ct[sat][key] = np.array(val)[elev_ind]
     else:
-        for sat in sats:
+        for sat in satellites:
+            lat_ind = np.array(np.abs(patch_ct[sat]['lat_mag']) > plot_lat_cutoff)
             for key, val in patch_ct[sat].items():
-                patch_ct[sat][key] = np.array(val)
+                print(key)
+                pdb.set_trace()
+                patch_ct[sat][key] = np.array(val)[lat_ind]
+            pdb.set_trace()
         
             
             
-    norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
+    # norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
     # plot_t_doy(patch_ct, norm_ct, vartype='lt')
     plot_hist(patch_ct)
     # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
@@ -203,7 +208,7 @@ def plot_ut(patch_ct, norm_ct, sats=['A', 'B']):
         else:
             plt.ylim(0, 12)
        
-        plt.bar(binedges[:-1], ut_hist, width=np.diff(binedges))
+        plt.bar(binedges[:-1], ut_hist, width=np.diff(binedges), edgecolor=colour, linewidth=0)
         plt.xlabel('UT Hour')
         if np.mod(ct, 2) != 0:
             plt.ylabel('Patch count / hour')
@@ -285,59 +290,71 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5)):
     hems = 'north', 'south'
     for hem in hems:
         for sat in satellites:
-            day_ct = np.array([(time - starttime).days for time in patch_ct[sat]['times']])
+            ct += 1
+            ax = plt.subplot(len(satellites), 2, ct)
+            times = np.squeeze(patch_ct[sat]['times'])
+            day_ct = np.array([(time - starttime).days for time in times])
             nbins = round((endtime - starttime + dt.timedelta(days=1)) / timestep)
             sat_lats = np.squeeze(patch_ct[sat]['lat_geo'])
             nh_ind = sat_lats > 0
             sh_ind = sat_lats < 0
-            ct += 1
-            plt.subplot(len(satellites), 2, ct)
             day_ct_h = day_ct[nh_ind] if hem == 'north' else day_ct[sh_ind]
-            plt.hist(day_ct_h, color=colour, bins=nbins)
+            day = dt.datetime(starttime.year, starttime.month, starttime.day)
+            days = []            
+            while day < endtime:
+                days.append(day)
+                day += timestep
+        
+            cts, bins = np.histogram(day_ct_h, len(days))
+            ax.bar(days, cts, width=5, color=colour, edgecolor=colour, linewidth=0)
+            ax.xaxis_date()
+            ax.set_xticks(ax.get_xticks()[::2])
 
             plt.title('Satellite %s, %s hemisphere' % (sat, hem))
             if np.mod(ct, 2) != 0:
                 plt.ylabel('Patch count / 5 days')
             frame = plt.gca()
-            ymax = 250
+            ymax = 80
             day_ctmin = min(day_ct)
             day_ctmax = max(day_ct)
             plt.ylim(0, ymax)
-            plt.xlim(0, day_ctmax)
+            # plt.xlim(0, day_ctmax)
   
             yr = starttime.year 
             dec_sols = []
             jun_sols = []
             while yr < endtime.year: 
-                dec_sols.append((dt.datetime(yr, 12, 21) - starttime).days)
-                jun_sols.append((dt.datetime(yr, 6, 21) - starttime).days)
+                dec_sols.append(dt.datetime(yr, 12, 21))
+                jun_sols.append(dt.datetime(yr, 6, 21))
                 yr += 1
 
             cnt = 1
             for d in jun_sols:
                 if cnt == 1:
-                    plt.plot([d, d], [0, day_ctmax], 'b--', label='June Solstice')
-                    cnt += 1
-                else:
-                    plt.plot([d, d], [0, day_ctmax], 'b--')
-             
-            for d in dec_sols:
-                if cnt == 2:
-                    plt.plot([d, d], [0, day_ctmax], 'r--', label='December Solstice')
+                    plt.plot_date([d, d], [0, ymax], 'r--', label='June Solstice')
                     cnt += 1
                 else:
                     plt.plot([d, d], [0, day_ctmax], 'r--')
+             
+            for d in dec_sols:
+                if cnt == 2:
+                    plt.plot([d, d], [0, day_ctmax], 'b--', label='December Solstice')
+                    cnt += 1
+                else:
+                    plt.plot([d, d], [0, day_ctmax], 'b--')
 
             if ct == 2:
                 plt.legend()
             if np.mod(ct, 2) == 0: 
                 frame.axes.yaxis.set_ticklabels([])
-            if ct >= 3:
-                plt.xlabel(starttime.strftime('Days from %d %b %Y'))
-            else:
+            if ct < 3:
                 frame.axes.xaxis.set_ticklabels([])
             plt.grid()
     plt.suptitle(instrument, fontweight='bold')
+    font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 15} 
+    matplotlib.rc('font', **font) 
     plt.show()
 
 
@@ -420,7 +437,7 @@ def sum_passes(fname_format, crd='mag'):
                 try:
                     pass_ct_full[s][crd][0] += pass_ct[s][crd][0]
                 except:
-                    print('Missing file for satellite %s on %s' % (s, time.strftime('%Y %m %d')))
+                    print('No counts on satellite %s on %s' % (s, time.strftime('%Y %m %d')))
         time += dt.timedelta(days=1)
 
     # for sat in satellites:
@@ -432,18 +449,22 @@ def get_patch_ct(starttime, endtime, satellites, fin):
     patch_ct = {}
     time = starttime
     while time < endtime:
-        with open(time.strftime(fin), 'rb') as f:
-            count = pickle.load(f)
-        if patch_ct == {}:
-            patch_ct = count
-        else:
-            for sat in satellites:
-                try:
-                    for key, val in count[sat].items():
-                        if key != 'params':
-                            patch_ct[sat][key] = patch_ct[sat][key] + val
-                except:
-                    print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
+        try:
+            with open(time.strftime(fin), 'rb') as f:
+                count = pickle.load(f)
+            if patch_ct == {}:
+                patch_ct = count
+            else:
+                for sat in satellites:
+                    try:
+                        for key, val in count[sat].items():
+                            if key != 'params':
+                                patch_ct[sat][key] = patch_ct[sat][key] + val
+                    except:
+                        print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
+        except:
+            print('No file on %s' % (time.strftime('%Y-%m-%d')))
+
         time += dt.timedelta(days=1)
     return patch_ct
 

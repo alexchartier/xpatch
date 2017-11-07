@@ -8,7 +8,7 @@ Sat = 'B';
 SwarmPath = [RootDir, 'lp/SW_OPER_EFI', Sat, ...
    '_PL_1B_{yyyymmdd}T000000_{yyyymmdd}T235959_0403_MDR_EFI_PL.cdf'];
 
-Time = datenum(2015, 12, 20, 16, 60, 0);
+Time = datenum(2015, 12, 20, 18, 20, 0);
 before = 20/60/24;
 after = 10/60/24;
 lat_cutoff = 45; 

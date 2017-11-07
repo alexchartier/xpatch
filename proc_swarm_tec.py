@@ -216,8 +216,7 @@ def get_swarm_vals(fname):
                           vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
-    vals['elev'] = physics.elevation(vals['gps_pos'], vals['leo_pos']) * 180 / np.pi
-    new_vars = 'lat_mag', 'lon_mag', 'elev'
+    new_vars = 'lat_mag', 'lon_mag'
     vars.update(dict(zip(new_vars, new_vars)))
     return vals, vars
 
@@ -227,8 +226,10 @@ def load_swarm(fname):
     vars = {'Latitude': 'lat_geo',   # Geographic latitude
             'Longitude': 'lon_geo',  # geographic longitude
             'Absolute_STEC': 'tec',  # TEC in TECU
+            'Absolute_VTEC': 'vtec',  # Vertical TEC in TECU
             'GPS_Position' : 'gps_pos',  # XYZ position of GPS (m)
             'LEO_Position' : 'leo_pos',  # XYZ position of SWARM (m)
+            'Elevation_Angle' : 'elev',  # Elevation angle reported by Swarm
             'Timestamp': 'times',  # Datetime times
             'PRN': 'prn'}  # GPS pseudo-random ID
     vals = {}

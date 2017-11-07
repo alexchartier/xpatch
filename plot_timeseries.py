@@ -15,20 +15,21 @@ import socket
 
 
 def main(
-        starttime = dt.datetime(2014, 12, 21),
-          endtime = dt.datetime(2014, 12, 21, 23, 59),
+        starttime = dt.datetime(2014, 12, 21, 19, 0), 
+          endtime = dt.datetime(2014, 12, 21, 19, 20),
         # starttime = dt.datetime(2016, 5, 8, 16, 37, 10),
         #   endtime = dt.datetime(2016, 5, 8, 17, 0, 0),
               sats=['A'],
-        instrument='Langmuir Probe',
+        instrument='GPS',
           approach='coley',
            procgps=False,
          ):
 
     # Langmuir Probe
     if instrument == 'Langmuir Probe':
+        lat_cutoff = 55
         import proc_swarm_lp
-        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, approach=approach, sats=sats, save=False)
+        patch_ct, vals = proc_swarm_lp.main(time=starttime, endtime=endtime, approach=approach, sats=sats, lat_cutoff=55, save=False)
         plot_ne_timeseries(patch_ct, vals, sat=sats[0], start=starttime, stop=endtime) 
 
     elif instrument == 'GPS':        
@@ -54,8 +55,8 @@ def main(
 
 
 def plot_tec_timeseries(patch_ct, vals, sat='B', \
-                                           start=dt.datetime(2015, 12, 20, 16, 35), \
-                                           stop=dt.datetime(2015, 12, 20, 16, 59, 32)):
+                                      start=dt.datetime(2015, 12, 20, 16, 35), \
+                                       stop=dt.datetime(2015, 12, 20, 16, 59, 32)):
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)
@@ -80,13 +81,19 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     utd = mdates.date2num(ut)
 
     # TEC timeseries
+    ctr = 0
     for p in unique_prns:
         vals_prnind = prn == p
         count_prnind = count['prn'].flatten() == p
-        plt.plot_date(utd[vals_prnind], tec[vals_prnind], '--')
+        plt.plot_date(utd[vals_prnind][::5], tec[vals_prnind][::5], '.')
         # plot peak TEC
-        plt.plot(mdates.date2num(count['times'].flatten()[count_prnind]), count['tec'].flatten()[count_prnind], 'kx', markersize=10, mew=4)
+        pk = plt.plot(mdates.date2num(count['times'].flatten()[count_prnind]), count['tec'].flatten()[count_prnind], \
+                      'kx', markersize=20, mew=5, label='Patch')
 
+        if ctr == 0:
+            handles, labels = ax1.get_legend_handles_labels()
+            ax1.legend(handles, labels)
+            ctr += 1
         """     
         # plot b1, b2 and bg levels of Ne
         plt.plot(mdates.date2num(count['t1'].flatten()[count_prnind]), count['tec_b1'][count_prnind], 'gx', markersize=10, mew=4)
@@ -95,12 +102,13 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
             mdates.date2num(count['t2'].flatten()[count_prnind])], [count['tec_b1'][count_prnind], count['tec_b2'][count_prnind]],'g--')
         """
 
-    maxval = tec.max() * 1.1
+    # maxval = tec.max() * 1.1
+    maxval = 40
     fig.autofmt_xdate()
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     plt.xlabel(r'Time ($UT$)')
     plt.ylim(0, maxval) 
-    plt.ylabel(r'Total Electron Content ($10^{11} m^{-2}$)')
+    plt.ylabel(r'Total Electron Content ($10^{16} m^{-2}$)')
     plt.grid(which='both')
     """
     t = ut.min()
@@ -116,9 +124,10 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     """
 
     # plot magnetic latitude ticks
+    nticks = 15
     ax2 = ax1.twiny()
-    new_tick_locations = utd[0:-1:int(len(utd) / 5)]
-    new_ticks = mlat[0:-1:int(len(utd) / 5)]
+    new_tick_locations = utd[0:-1:int(len(utd) / nticks)]
+    new_ticks = mlat[0:-1:int(len(utd) / nticks)]
     new_ticklabels = ['%2.1f' % t for t in new_ticks]
     ax2.set_xlim(ax1.get_xlim())
     ax2.set_xticks(new_tick_locations)
@@ -129,13 +138,13 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
 
  
 def plot_ne_timeseries(patch_ct, vals, sat='B', \
-                                       lat_cutoff=-90, \
+                                       lat_cutoff=55, \
                                        start=dt.datetime(2015, 12, 20, 16, 35), \
                                        stop=dt.datetime(2015, 12, 20, 17, 5)):
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)
-    latind = mlat > lat_cutoff
+    latind = np.abs(mlat) > lat_cutoff
     ind = np.logical_and(latind, timeind)
     ne = vals[sat]['ne'][ind]
     ne_rm = vals[sat]['ne_rm'][ind]
@@ -152,17 +161,18 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     utd = mdates.date2num(ut)
 
     # Ne timeseries
-    obs = plt.plot_date(utd, ne, 'b--', label='Observed Ne')
-    mf = plt.plot_date(utd, ne_rm, 'k', label='Median-smoothed Ne', linewidth=2)
+    obs = plt.plot_date(utd, ne, 'b.', label='Observed Ne')
+    mf = plt.plot_date(utd, ne_rm, 'k-', label='Median-smoothed Ne', linewidth=2)
 
     # plot peak and background Ne
-    pk = plt.plot(mdates.date2num(np.squeeze(count['times'])), np.squeeze(count['ne_rm']), 'rx', markersize=10, mew=4, label='Peak')
-    bg = plt.plot(mdates.date2num(np.squeeze(count['times'])), np.squeeze(count['ne_bg']), 'gx', label='background',  markersize=10, mew=4)
+    pk = plt.plot(mdates.date2num(count['times'].tolist()), np.squeeze(count['ne_rm']), 'rx', markersize=24, mew=4, label='Patch')
+    # bg = plt.plot(mdates.date2num(count['times'].tolist()), np.squeeze(count['ne_bg']), 'gx', label='background',  markersize=10, mew=4)
 
     handles, labels = ax1.get_legend_handles_labels()
     ax1.legend(handles, labels)
 
-    maxval = ne.max() * 1.1
+    # maxval = ne.max() * 1.1
+    maxval = 7E5
     """
     # plot vertical lines at start and end of window
     plt.plot([mdates.date2num(count['t_start'][0]), mdates.date2num(count['t_start'][0])], [0, maxval], 'k--', mew=2)
@@ -173,7 +183,7 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     """
 
     fig.autofmt_xdate()
-    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S'))
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     plt.xlabel(r'Time ($UT$)')
     plt.ylim(0, maxval) 
     plt.ylabel(r'Electron density ($cm^{-3}$)')
@@ -192,15 +202,20 @@ def plot_ne_timeseries(patch_ct, vals, sat='B', \
     """
 
     # plot magnetic latitude ticks
+    nticks = 15
     ax2 = ax1.twiny()
-    new_tick_locations = utd[0:-1:int(len(utd) / 4)]
-    new_ticks = mlat[0:-1:int(len(utd) / 4)]
+    new_tick_locations = utd[0:-1:int(len(utd) / nticks)]
+    new_ticks = mlat[0:-1:int(len(utd) / nticks)]
     new_ticklabels = ['%2.1f' % t for t in new_ticks]
     ax2.set_xlim(ax1.get_xlim())
     ax2.set_xticks(new_tick_locations)
     ax2.set_xticklabels(new_ticklabels)
     ax2.set_xlabel(r"Mag. lat. ($deg$)")
-    matplotlib.rcParams.update({'font.size': 24})
+    font = {'family' : 'normal',
+            'size'   : 30}
+
+    matplotlib.rc('font', **font)
+    # plt.title(start.strftime('%Y/%b/%d'))
     plt.show()
  
 

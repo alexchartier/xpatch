@@ -15,7 +15,6 @@
 global ROOT; 
 ROOT = '~/midas-3/';
 
-
 %% Define model directories for MEX functions (locations of model data files)
 global IRI95;   IRI95  = [ROOT,'source/iri95'];
 global IGRF;    IGRF   = [ROOT,'source/igrf'];
@@ -46,6 +45,12 @@ path([ROOT,'source/mex'],path);
 path([ROOT,'matlab/mindi'],path);
 path([ROOT,'matlab/m_map'],path);
 path([ROOT,'matlab/utils'],path);
+
+%% pharlap stuff
+path('~/pharlap_4.2.0/',path);
+path('~/pharlap_4.2.0/src/matlab/',path);
+path('~/pharlap_4.2.0/mex/',path);
+setenv('DIR_MODELS_REF_DAT', '~/pharlap_4.2.0/dat/')
 
 
 %% Startup output (please leave)
