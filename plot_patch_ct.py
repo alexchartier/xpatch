@@ -21,7 +21,6 @@ endtime = dt.datetime(2017, 6, 1)
 satellites = 'A', 'B'
 
 lat_cutoff = 55
-plot_lat_cutoff = 70
 approach = 'alex'
 instrument = 'Langmuir Probe'  # or 'GPS'
 
@@ -60,12 +59,16 @@ def main():
                     patch_ct[sat][key] = np.array(val)[elev_ind]
     else:
         for sat in satellites:
-            lat_ind = np.array(np.abs(patch_ct[sat]['lat_mag']) > plot_lat_cutoff)
-            for key, val in patch_ct[sat].items():
+            alts, patch_ct[sat]['lat_mag'], patch_ct[sat]['lon_mag'] = physics.transform(patch_ct[sat]['rad'], np.deg2rad(patch_ct[sat]['lat_geo']), \
+                      np.deg2rad(patch_ct[sat]['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
+
+            patch_ct[sat]['lat_mag'], patch_ct[sat]['lon_mag'] = np.rad2deg(patch_ct[sat]['lat_mag']), np.rad2deg(patch_ct[sat]['lon_mag'])
+
+            keys = 'times', 'lat_geo', 'lat_mag'
+            for key in keys:
                 print(key)
-                pdb.set_trace()
-                patch_ct[sat][key] = np.array(val)[lat_ind]
-            pdb.set_trace()
+                patch_ct[sat][key] = np.array(patch_ct[sat][key])
+                # patch_ct[sat][key] = np.array(val)
         
             
             
@@ -285,28 +288,34 @@ def plot_mlt(patch_ct, norm_ct, sats=['A', 'B']):
 
     plt.show()               
 
-def plot_hist(patch_ct, timestep=dt.timedelta(days=5)):
+
+def plot_hist(patch_ct, timestep=dt.timedelta(days=5), lat_lims={'k':55, 'm':70, 'c':78}):
+    
     ct = 0
     hems = 'north', 'south'
     for hem in hems:
         for sat in satellites:
             ct += 1
-            ax = plt.subplot(len(satellites), 2, ct)
+            ax = plt.subplot(len(satellites), 2, ct) 
             times = np.squeeze(patch_ct[sat]['times'])
             day_ct = np.array([(time - starttime).days for time in times])
             nbins = round((endtime - starttime + dt.timedelta(days=1)) / timestep)
             sat_lats = np.squeeze(patch_ct[sat]['lat_geo'])
+            sat_mag_lats = np.squeeze(patch_ct[sat]['lat_mag'])
             nh_ind = sat_lats > 0
             sh_ind = sat_lats < 0
-            day_ct_h = day_ct[nh_ind] if hem == 'north' else day_ct[sh_ind]
-            day = dt.datetime(starttime.year, starttime.month, starttime.day)
-            days = []            
-            while day < endtime:
-                days.append(day)
-                day += timestep
-        
-            cts, bins = np.histogram(day_ct_h, len(days))
-            ax.bar(days, cts, width=5, color=colour, edgecolor=colour, linewidth=0)
+            for clr, lat_lim in lat_lims.items():
+                lat_ind = np.array(np.abs(sat_mag_lats) > lat_lim)
+                day_ct_h = day_ct[np.logical_and(nh_ind, lat_ind)] if hem == 'north' else day_ct[np.logical_and(sh_ind, lat_ind)]
+                day = dt.datetime(starttime.year, starttime.month, starttime.day)
+                days = []            
+                while day < endtime:
+                    days.append(day)
+                    day += timestep
+            
+                cts, bins = np.histogram(day_ct_h, len(days))
+                ax.bar(days, cts, width=5, color=clr, edgecolor=clr, linewidth=0)
+
             ax.xaxis_date()
             ax.set_xticks(ax.get_xticks()[::2])
 
@@ -453,6 +462,8 @@ def get_patch_ct(starttime, endtime, satellites, fin):
             with open(time.strftime(fin), 'rb') as f:
                 count = pickle.load(f)
             if patch_ct == {}:
+                for s in satellites: 
+                    assert s in count.keys(), 'Satellite %s missing from first count - try a different date or something'
                 patch_ct = count
             else:
                 for sat in satellites:
@@ -462,11 +473,14 @@ def get_patch_ct(starttime, endtime, satellites, fin):
                                 patch_ct[sat][key] = patch_ct[sat][key] + val
                     except:
                         print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
+                    # if len(patch_ct[sat]['lat_geo']) != len(patch_ct[sat]['lat_mag']):
+                    #     pdb.set_trace()
         except:
             print('No file on %s' % (time.strftime('%Y-%m-%d')))
 
         time += dt.timedelta(days=1)
     return patch_ct
+
 
 def calc_mlt(ut, mlon):
     mlt = ut + mlon * 24 / 360

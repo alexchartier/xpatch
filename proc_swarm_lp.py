@@ -17,13 +17,11 @@ sys.path.insert(0, '/Users/chartat1/fusionpp/fusion/')
 import physics
 
 
-
 def main(ipath='/Volumes/Seagate/data/swarm/lp/',
          opath='/Volumes/Seagate/data/swarm/proc_lp/', 
          time=dt.datetime(2014, 8, 1),
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2017, 7, 1),
-         cutoff_crd='mag',
          lat_cutoff=55,
          sats = ['A', 'B'],
          save=True,
@@ -53,7 +51,7 @@ def main(ipath='/Volumes/Seagate/data/swarm/lp/',
                 print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
-            fout = opath + approach + '/%i_deg/' % lat_cutoff + time.strftime('lp_%Y%m%d_' ) + '%ideg.pkl' % lat_cutoff
+            fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
             with open(fout, 'wb') as f:
                 pickle.dump(patch_ct, f) 
             print('\nSaving %s' % fout)
@@ -166,7 +164,7 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
         # Perform abs magnitude test
         if NEp - NEbg < peak_mag:
             continue
-
+        pdb.set_trace()
         # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
         patch_index = vals_ind['ne_rm'] == NEp
         assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
