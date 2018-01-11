@@ -21,7 +21,7 @@ import socket
 import proc_swarm_lp
 
 
-def main(save=False, plot=True):
+def main(save=True, plot=True):
     time=dt.datetime(2014, 8, 1)
     endtime=dt.datetime(2017, 6, 29)
 
@@ -33,17 +33,14 @@ def main(save=False, plot=True):
 
 
 def plot_bkgd_dens(
+                  ipath='/Volumes/Seagate/data/swarm/proc_bkgd_dens/bkgd_dens_%Y%m%d.pkl',
                   time=dt.datetime(2016, 1, 1),
                   step=dt.timedelta(days=1),
                   endtime=dt.datetime(2016, 12, 31),
                   sats=['A', 'B'],
                   hems=['nh', 'sh'],
-                 ):
+                  ):
  
-    if socket.gethostname() == 'chartat1-ml2':
-        ipath = '/Volumes/Seagate/data/swarm/proc_bkgd_dens/bkgd_dens_%Y%m%d.pkl'
-    elif socket.gethostname() == 'chartat1-ml1':
-        ipath = 'data/proc_bkgd_dens/bkgd_dens_%Y%m%d.pkl'   
 
     # set up holder
     dens_ts = {}
@@ -134,12 +131,8 @@ def save_bkgd_dens(
                   sats=['A', 'B'],
                   ):
 
-    if socket.gethostname() == 'chartat1-ml2':
-        ipath = '/Volumes/Seagate/data/swarm/lp/'
-        opath = '/Volumes/Seagate/data/swarm/proc_bkgd_dens/'
-    elif socket.gethostname() == 'chartat1-ml1':
-        ipath = 'data/swarm/lp/'
-        opath = 'data/proc_bkgd_dens/'
+    ipath = '/Volumes/Seagate/data/swarm/lp/'
+    opath = '/Volumes/Seagate/data/swarm/proc_bkgd_dens/'
     
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
@@ -183,6 +176,9 @@ def calc_bkgd_dens(fname, lat_cutoff=55):
     index = np.abs(vals['lat_mag']) > lat_cutoff
     for key, val in vals.items():  
         vals[key] = val[index]
+
+    # Remove flagged values
+    pdb.set_trace()
 
     bkgd_dens = {}
     bkgd_dens['nh'] = np.mean(vals['ne'][vals['lat_geo'] > 0])

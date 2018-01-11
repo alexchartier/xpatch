@@ -17,7 +17,7 @@ sys.path.append(cwd + '/../fusionpp/glimpse/')
 import downloader
 
 instrument = 'lp'
-dl_times = [datetime.datetime(2017, 8, 15), datetime.datetime(2017, 8, 25)]
+dl_times = [datetime.datetime(2016, 1, 1), datetime.datetime(2016, 12, 31)]
 
 if instrument == 'gps':
     servername = 'data/swarm_server_names.txt'
@@ -26,7 +26,8 @@ if instrument == 'gps':
 
 elif instrument == 'lp':
     servername = 'data/swarm_lp.txt'
-    dl_dir = '/Volumes/Seagate/data/swarm/lp/'
+    # dl_dir = '/Volumes/Seagate/data/swarm/lp/'
+    dl_dir = './data/swarm_lp/'
     # servername = 'data/swarm_lp_adv.txt'
     # dl_dir = '/Volumes/Seagate/data/swarm/lp_adv/'
 

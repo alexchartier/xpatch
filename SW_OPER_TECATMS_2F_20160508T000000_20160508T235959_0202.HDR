@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<Earth_Explorer_Header xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <Fixed_Header>
+    <File_Name>SW_OPER_TECATMS_2F_20160508T000000_20160508T235959_0202</File_Name>
+    <File_Description>L2 CAT2 TEC data</File_Description>
+    <Notes></Notes>
+    <Mission>Swarm</Mission>
+    <File_Class>OPER</File_Class>
+    <File_Type>TECATMS_2F</File_Type>
+    <Validity_Period>
+      <Validity_Start>UTC=2016-05-08T00:00:00</Validity_Start>
+      <Validity_Stop>UTC=2016-05-08T23:59:59</Validity_Stop>
+    </Validity_Period>
+    <File_Version>0202</File_Version>
+    <Source>
+      <System>APDF</System>
+      <Creator>L2</Creator>
+      <Creator_Version>01.15</Creator_Version>
+      <Creation_Date>UTC=2016-05-13T14:04:00</Creation_Date>
+    </Source>
+  </Fixed_Header>
+
+  <Variable_Header>
+    <MPH>
+      <Product>SW_OPER_TECATMS_2F_20160508T000000_20160508T235959_0202</Product>
+      <Product_Format>CDF</Product_Format>
+      <Proc_Stage_Code>OPER</Proc_Stage_Code>
+      <Ref_Doc>SW-DS-DTU-GS-0001</Ref_Doc>
+      <Proc_Center>UK-PAC</Proc_Center>
+      <Proc_Time>UTC=2016-05-13T14:04:00.947694</Proc_Time>
+      <Software_Version>TEC/01.15</Software_Version>
+      <Product_Err>0</Product_Err>
+      <Tot_Size unit="bytes">+00000000000064936272</Tot_Size>
+      <CRC>+0000049417</CRC>
+    </MPH>
+    <SPH>
+      <SPH_Descriptor>TECATMS_2F</SPH_Descriptor>
+      <Orbit_Information>
+        <Sensing_Start>UTC=2016-05-08T00:00:00.000000</Sensing_Start>
+        <Sensing_Stop>UTC=2016-05-08T23:59:59.999899</Sensing_Stop>
+      </Orbit_Information>
+      <Maneuver_Information count="1">
+        <Maneuver_Id>004</Maneuver_Id>
+      </Maneuver_Information>
+      <Product_Confidence_Data>
+        <Quality_Indicator>000</Quality_Indicator>
+      </Product_Confidence_Data>
+      <List_of_DSDs count="13">
+        <DSD>
+          <Data_Set_Name>TECATMS_2F</Data_Set_Name>
+          <Data_Set_Type>M</Data_Set_Type>
+          <File_Name></File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000421664</Num_of_Records>
+          <Record_Size unit="bytes">+0000000288</Record_Size>
+          <Byte_Order>0123</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_DCB_2F</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_DCB_2F_20160508T000000_20160509T000000_0001</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_GPSEPH</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_GPSEPH_20160506T000000_20160507T000000_0001</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_GPSEPH</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_GPSEPH_20160507T000000_20160508T000000_0001</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_GPSEPH</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_GPSEPH_20160508T000000_20160509T000000_0001</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_GPSEPH</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_GPSEPH_20160509T000000_20160510T000000_0001</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>AUX_USLEAP</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_AUX_USLEAP_19720101T000000_99999999T999999_0002</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>GPSA_RO_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_GPSA_RO_1B_20160507T000000_20160507T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>GPSA_RO_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_GPSA_RO_1B_20160508T000000_20160508T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>GPSA_RO_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_GPSA_RO_1B_20160509T000000_20160509T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>MODA_SC_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_MODA_SC_1B_20160507T000000_20160507T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>MODA_SC_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_MODA_SC_1B_20160508T000000_20160508T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+        <DSD>
+          <Data_Set_Name>MODA_SC_1B</Data_Set_Name>
+          <Data_Set_Type>R</Data_Set_Type>
+          <File_Name>SW_OPER_MODA_SC_1B_20160509T000000_20160509T235959_0305</File_Name>
+          <Data_Set_Offset unit="bytes">+00000000000000000000</Data_Set_Offset>
+          <Data_Set_Size unit="bytes">+00000000000000000000</Data_Set_Size>
+          <Num_of_Records>+0000000000</Num_of_Records>
+          <Record_Size unit="bytes">+0000000000</Record_Size>
+          <Byte_Order>0000</Byte_Order>
+        </DSD>
+      </List_of_DSDs>
+    </SPH>
+  </Variable_Header>
+
+</Earth_Explorer_Header>

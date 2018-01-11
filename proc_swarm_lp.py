@@ -18,7 +18,7 @@ import physics
 
 
 def main(ipath='/Volumes/Seagate/data/swarm/lp/',
-         opath='/Volumes/Seagate/data/swarm/proc_lp/', 
+         opath='./data/swarm/proc_lp/', 
          time=dt.datetime(2014, 8, 1),
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2017, 7, 1),
@@ -164,11 +164,10 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
         # Perform abs magnitude test
         if NEp - NEbg < peak_mag:
             continue
-        pdb.set_trace()
+
         # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
         patch_index = vals_ind['ne_rm'] == NEp
         assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
-        pdb.set_trace()
         for key, var in vals_ind.items():
             patch_ct[key].append(vals_ind[key][patch_index])
         patch_ct['ne_bg'].append(NEbg)
