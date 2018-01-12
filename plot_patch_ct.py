@@ -36,15 +36,9 @@ elif instrument == 'GPS':
     elev_cutoff = 25
     colour = 'y'
     freq = 1  # hz
-    if socket.gethostname() == 'chartat1-ml2':
-        # Work GPS
-        fin = '/Volumes/Seagate/data/swarm/proc_gps/patch_ct_%Y%m%d.pkl'
-        norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d_' + '%ideg.pkl' % lat_cutoff
-
-    elif socket.gethostname() == 'chartat1-ml1':
-        # Home GPS
-        fin = './gps_proc/patch_ct_%Y%m%d.pkl'
-        norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d.pkl'
+    # Work GPS
+    fin = '/Volumes/Seagate/data/swarm/proc_gps/patch_ct_%Y%m%d.pkl'
+    norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d_' + '%ideg.pkl' % lat_cutoff
 
 
 def main():
@@ -74,8 +68,8 @@ def main():
             
     # norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
     # plot_t_doy(patch_ct, norm_ct, vartype='lt')
+    plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     plot_hist(patch_ct)
-    # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
     # oneday_timeseries()
     # plot_ut(patch_ct, norm_ct)
     # plot_mlt(patch_ct, norm_ct)
@@ -327,14 +321,14 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5), lat_lims={'k':55, 'm':70,
             day_ctmin = min(day_ct)
             day_ctmax = max(day_ct)
             plt.ylim(0, ymax)
-            # plt.xlim(0, day_ctmax)
   
             yr = starttime.year 
             dec_sols = []
             jun_sols = []
             while yr < endtime.year: 
                 dec_sols.append(dt.datetime(yr, 12, 21))
-                jun_sols.append(dt.datetime(yr, 6, 21))
+                if yr > starttime.year:
+                    jun_sols.append(dt.datetime(yr, 6, 21))
                 yr += 1
 
             cnt = 1
@@ -469,10 +463,10 @@ def get_patch_ct(starttime, endtime, satellites, fin):
                 for sat in satellites:
                     try:
                         for key, val in count[sat].items():
-                            if key != 'params':
+                            if key not in ['T_ion', 'params', 'ne_err']:
                                 patch_ct[sat][key] = patch_ct[sat][key] + val
                     except:
-                        print('%s Missing file on satellite %s' % (time.strftime('%Y-%m-%d'), sat))
+                        print('%s No counts from satellite %s' % (time.strftime('%Y-%m-%d'), sat))
                     # if len(patch_ct[sat]['lat_geo']) != len(patch_ct[sat]['lat_mag']):
                     #     pdb.set_trace()
         except:

@@ -449,12 +449,14 @@ def load_lp(fname):
     cdf = pycdf.CDF(fname)
     vars = {'Latitude': 'lat_geo',   # Geographic latitude
             'Longitude': 'lon_geo',  # geographic longitude
+            'Diplat': 'Diplat', 
+            'Diplon': 'Diplon', 
+            'MLat': 'AACGMLat', 
+            'MLon': 'AACGMLon', 
             'Radius': 'rad',  # Radial distance
             'n': 'ne',  # Electron density
             'Timestamp': 'times',  # Datetime times
             'T_elec': 'T_elec',  # Electron temp.
-            'T_ion': 'T_ion',  # Ion temp.
-            'n_error': 'ne_err',  # Electron density error
             }   
     vals = {}
         
