@@ -17,11 +17,11 @@ sys.path.insert(0, '/Users/chartat1/fusionpp/fusion/')
 import physics
 
 
-def main(ipath='/Volumes/Seagate/data/swarm/lp/',
+def main(ipath='./data/swarm_lp/',
          opath='./data/swarm/proc_lp/', 
-         time=dt.datetime(2014, 8, 1),
+         time=dt.datetime(2016, 1, 1),
          step=dt.timedelta(days=1),
-         endtime=dt.datetime(2017, 7, 1),
+         endtime=dt.datetime(2017, 1, 1),
          lat_cutoff=55,
          sats = ['A', 'B'],
          save=True,
@@ -37,18 +37,18 @@ def main(ipath='/Volumes/Seagate/data/swarm/lp/',
         for sat in sats:
             print('\nSatellite %s' % sat)
             fname_format = ipath + 'SW_*_EFI%s' % sat + '*%Y%m%d*.cdf' 
-            try:
-                fname = glob.glob(time.strftime(fname_format))[0]
-                vals[sat] = load_lp(fname)
-                vals[sat]['lt'] = localtime(vals[sat])
-                if approach == 'coley':
-                    patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
-                elif approach == 'alex':
-                    patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
-                else:
-                    patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
-            except:
-                print('Could not count patches for satellite %s on %s' % (sat, timestr))
+            #try:
+            fname = glob.glob(time.strftime(fname_format))[0]
+            vals[sat] = load_lp(fname)
+            vals[sat]['lt'] = localtime(vals[sat])
+            if approach == 'coley':
+                patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
+            elif approach == 'alex':
+                patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
+            else:
+                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
+            # except:
+            #     print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
             fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
@@ -66,6 +66,8 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
     from pyglow import pyglow
     # Specify cutoff value according to F10.7
     pt = pyglow.Point(vals['times'][0], 100, 0, 0)
+    if np.isnan(pt.f107a):
+        print('F107a is NaN - stopping')
     assert not np.isnan(pt.f107a), 'F107a is NaN - stopping'
     peak_mag = pt.f107a * peak_f107_mult
 
@@ -167,6 +169,7 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
 
         # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
         patch_index = vals_ind['ne_rm'] == NEp
+        pdb.set_trace()
         assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
         for key, var in vals_ind.items():
             patch_ct[key].append(vals_ind[key][patch_index])

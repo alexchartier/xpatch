@@ -30,10 +30,10 @@ import proc_swarm_lp
 
 def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'], \
              drift_fin='./data/drifts_%s_to_%s.pkl', \
-          ne_fname_fmt=['/Volumes/Seagate/data/swarm/lp/SW_*EFI%s', '*%Y%m%d*.cdf'], \
+          ne_fname_fmt=['./data/swarm_lp/SW_*EFI%s', '*%Y%m%d*.cdf'], \
                 ne_fin='./data/ne_%s_to_%s.pkl', \
                 ct_fin='/Volumes/Seagate/data/swarm/proc_lp/alex/55_deg/lp_%Y%m%d_55deg.pkl', \
-                  sats=['A', 'B'], \
+                  sats=['A'], \
              starttime=dt.datetime(2016, 1, 1), 
                endtime=dt.datetime(2016, 1, 31), \
             lat_cutoff=70, \
