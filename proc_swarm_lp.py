@@ -37,18 +37,21 @@ def main(ipath='./data/swarm_lp/',
         for sat in sats:
             print('\nSatellite %s' % sat)
             fname_format = ipath + 'SW_*_EFI%s' % sat + '*%Y%m%d*.cdf' 
-            #try:
-            fname = glob.glob(time.strftime(fname_format))[0]
-            vals[sat] = load_lp(fname)
-            vals[sat]['lt'] = localtime(vals[sat])
-            if approach == 'coley':
-                patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
-            elif approach == 'alex':
-                patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
-            else:
-                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
-            # except:
-            #     print('Could not count patches for satellite %s on %s' % (sat, timestr))
+            try:
+                fname_str = glob.glob(time.strftime(fname_format))
+                if len(fname_str) == 0:
+                    print('No CDF file matching %s' % time.strftime(fname_format))
+                fname = fname_str[0]
+                vals[sat] = load_lp(fname)
+                vals[sat]['lt'] = localtime(vals[sat])
+                if approach == 'coley':
+                    patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
+                elif approach == 'alex':
+                    patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
+                else:
+                    patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
+            except:
+                print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
             fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
@@ -80,13 +83,13 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
                           np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
-        
-    # add random lowlevel noise to the ne_vals to compensate for their low numerical precision for the filter
-    vals['ne'] += (np.random.rand(len(vals['ne'])) - 0.5) * 1E-5
 
     # Median-filter the data to remove high frequency noise
     idx = np.arange(filter_pts) + np.arange(len(vals['ne']) - filter_pts + 1)[:, None]
     ne_rm = np.median(vals['ne'][idx], axis=1)
+        
+    # add random lowlevel noise to the ne_vals to compensate for their low numerical precision for the filter
+    ne_rm += (np.random.rand(len(ne_rm)) - 0.5) * 1E-5
 
     # Shorten all the other datasets to match ne_rm
     for key, val in vals.items():
@@ -169,7 +172,6 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
 
         # If we're still going at this point, we have found a patch. Store the details and skip forward to the next window
         patch_index = vals_ind['ne_rm'] == NEp
-        pdb.set_trace()
         assert patch_index.sum() == 1, 'There should be exactly one patch index for each patch'
         for key, var in vals_ind.items():
             patch_ct[key].append(vals_ind[key][patch_index])
@@ -187,8 +189,6 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
                           'filter_pts': filter_pts,
                           'window_sec': window_sec,
                          'cadence_sec': cadence_sec}
-    if len(patch_ct['lat_geo']) > 0:
-        pdb.set_trace()
     return patch_ct
 
 
