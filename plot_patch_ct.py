@@ -16,8 +16,8 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
 import physics
 import count_passes
 
-starttime = dt.datetime(2014, 8, 1)
-endtime = dt.datetime(2017, 6, 1)
+starttime = dt.datetime(2014, 1, 1)
+endtime = dt.datetime(2017, 1, 1)
 satellites = 'A', 'B'
 
 lat_cutoff = 55
@@ -68,7 +68,8 @@ def main():
             
     # norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
     # plot_t_doy(patch_ct, norm_ct, vartype='lt')
-    plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
+    # plot_magnitudes(patch_ct)  # Determine the relative magnitude of all the patches counted in each hemisphere
+    plot_annual_hist(patch_ct)
     plot_hist(patch_ct)
     # oneday_timeseries()
     # plot_ut(patch_ct, norm_ct)
@@ -322,6 +323,8 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5), lat_lims={'k':55, 'm':70,
             day_ctmax = max(day_ct)
             plt.ylim(0, ymax)
   
+            """
+            # solstice-line plotting
             yr = starttime.year 
             dec_sols = []
             jun_sols = []
@@ -345,6 +348,7 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5), lat_lims={'k':55, 'm':70,
                     cnt += 1
                 else:
                     plt.plot([d, d], [0, day_ctmax], 'b--')
+            """
 
             if ct == 2:
                 plt.legend()
@@ -353,11 +357,58 @@ def plot_hist(patch_ct, timestep=dt.timedelta(days=5), lat_lims={'k':55, 'm':70,
             if ct < 3:
                 frame.axes.xaxis.set_ticklabels([])
             plt.grid()
-    plt.suptitle(instrument, fontweight='bold')
     font = {'family' : 'normal',
-        'weight' : 'bold',
-        'size'   : 15} 
+            'weight' : 'bold',
+            'size'   : 25} 
     matplotlib.rc('font', **font) 
+    plt.show()
+
+
+
+def plot_annual_hist(patch_ct, timestep=dt.timedelta(days=5), clr='m', lat_lim=70):
+    
+    ct = 0
+    hems = 'north', 'south'
+    days = np.arange(1, 367) 
+    bins = days[::5]
+    fontsize = 20
+    for hem in hems:
+        ct += 1
+        ax = plt.subplot(1, 2, ct) 
+        patch_cts = np.zeros((len(bins) - 1,))
+        for sat in satellites:
+            times = np.squeeze(patch_ct[sat]['times'])
+            day_ct = np.array([t.timetuple().tm_yday for t in times])
+            sat_lats = np.squeeze(patch_ct[sat]['lat_geo'])
+            sat_mag_lats = np.squeeze(patch_ct[sat]['lat_mag'])
+            nh_ind = sat_lats > 0
+            sh_ind = sat_lats < 0
+            lat_ind = np.array(np.abs(sat_mag_lats) > lat_lim)
+            day_ct_h = day_ct[np.logical_and(nh_ind, lat_ind)] if hem == 'north' else day_ct[np.logical_and(sh_ind, lat_ind)]
+            cts, bns = np.histogram(day_ct_h, bins)
+            patch_cts += cts
+
+        patch_cts /= 3  # Annualize
+        bin_cntr = (bins[:-1] + bins[1:]) / 2
+        ax.bar(bin_cntr, patch_cts, width=5, color=clr, edgecolor=clr, linewidth=0)
+        ax.tick_params(labelsize=fontsize)
+
+        plt.title('%s hemisphere' % hem, fontsize=fontsize)
+        frame = plt.gca()
+        ymax = 50
+        day_ctmin = min(day_ct)
+        day_ctmax = max(day_ct)
+        plt.ylim(0, ymax)
+
+        if ct == 2:
+            frame.axes.yaxis.set_ticklabels([])
+        else:
+            plt.ylabel('Patch count / 5 days', fontsize=fontsize)
+        plt.xlabel('Day of Year', fontsize=fontsize)
+        ax.grid(color='k', linestyle='-', linewidth=0.5)
+        ax.set_xticks(np.arange(0, 365, 50))
+        plt.xlim(1, 365)
+            
     plt.show()
 
 

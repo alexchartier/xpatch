@@ -33,10 +33,10 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
           ne_fname_fmt=['./data/swarm_lp/SW_*EFI%s', '*%Y%m%d*.cdf'], \
                 ne_fin='./data/ne_%s_to_%s.pkl', \
                 ct_fin='./data/swarm/proc_lp/alex/lp_%Y%m%d_55deg.pkl', \
-                  sats=['A'], \
+                  sats=['A', 'B'], \
              starttime=dt.datetime(2016, 1, 1), 
-               endtime=dt.datetime(2016, 2, 10), \
-            lat_cutoff=70, \
+               endtime=dt.datetime(2016, 2, 1), \
+            lat_cutoff=0, \
          ):
 
     # Load electric fields
@@ -74,7 +74,7 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
         ne_df[sat] = ne_to_dataframe(ne[sat], lat_cutoff)
 
     # Load patch counts
-    patch_ct = get_patch_ct(starttime, endtime, sats, ct_fin)
+    # patch_ct = get_patch_ct(starttime, endtime, sats, ct_fin)
 
 
     # Spaghetti plots
@@ -98,26 +98,35 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
 
 
 def plot_spaghetti(efi_df, ne_df):
-    xvar = 'mlt'
+    xvar = 'lat_mag'
     ct = 0
-    nrows = 3
+    nrows = 2
     ncols = 2
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
-    for k, v in {'n':[0, 600000], 'T_elec':[0, 14000]}.items():
+    pltvars = {'n':[0, 1500000], 'T_elec':[0, 14000]}
+    for k, v in pltvars.items():
         c = 'k' if k == 'n' else 'r'
         ne_df[ne_df['lat_mag'] > 0].plot(x=xvar, y=k, marker='.', markersize=0.1, c=c, legend=False, \
-                                        linewidth=0, ax=axes[ct, 0], xlim=[0, 24], ylim=v)
+                                        linewidth=0, ax=axes[ct, 0], ylim=v,)# xlim=[0, 24], )
         ct += 1
     ct = 0
-    for k, v in {'n':[0, 600000], 'T_elec':[0, 14000]}.items():
+    for k, v in pltvars.items():
         c = 'k' if k == 'n' else 'r'
         ne_df[ne_df['lat_mag'] < 0].plot(x=xvar, y=k, marker='.', markersize=0.1, c=c, legend=False, \
-                                        linewidth=0, ax=axes[ct, 1], xlim=[0, 24], ylim=v)
+                                        linewidth=0, ax=axes[ct, 1], ylim=v)# xlim=[0, 24], )
         ct += 1
-    efi_df[efi_df['lat_mag'] > 0].plot(x=xvar, y='abs_viy', marker='.', markersize=0.1, legend=False, \
-                                        linewidth=0, ax=axes[2, 0], xlim=[0, 24], ylim=[0, 5000])
-    efi_df[efi_df['lat_mag'] < 0].plot(x=xvar, y='abs_viy', marker='.', markersize=0.1, legend=False, \
-                                        linewidth=0, ax=axes[2, 1], xlim=[0, 24], ylim=[0, 5000])
+    """
+    efi_df['B'] = np.sqrt(efi_df['bx'] ** 2 + efi_df['by'] ** 2 + efi_df['bz'] ** 2)
+    efi_vars = {'abs_viy':[0, 5000], 'B':[30000, 55000]}
+    for k, v in efi_vars.items():
+        efi_df[efi_df['lat_mag'] > 0].plot(x=xvar, y=k, marker='.', markersize=0.1, legend=False, \
+                                            linewidth=0, ax=axes[ct, 0], ylim=v)#, xlim=[0, 24])
+        efi_df[efi_df['lat_mag'] < 0].plot(x=xvar, y=k, marker='.', markersize=0.1, legend=False, \
+                                            linewidth=0, ax=axes[ct, 1], ylim=v)#, xlim=[0, 24])
+        if ct == 2:
+            ct += 1
+    
+    """
     plt.suptitle(ne_df.index[0].strftime('%b %Y'))
     ylabs = 'electrons / cm3', 'elec. temp (K)', 'abs. vel. (m/s)', 'B (nT)'
     hem = 'North', 'South'
@@ -309,7 +318,7 @@ def ne_to_dataframe(ne, lat_cutoff):
     ne['lat_mag'], ne['lon_mag'], ne['mlt'] = calc_mlt(ne['Latitude'], ne['Longitude'], ne['Timestamp'])
     above_lat_cutoff = np.abs(ne['lat_mag']) >= lat_cutoff
     not_crazy = (ne['n'] < 1E8) & (ne['T_elec'] < 1E6)
-    good_flags = (ne['Flags_LP_n'] == 20) & (ne['Flags_LP_T_elec'] == 20)  # (ne['Flags_LP'] == 1) # & 
+    good_flags = (ne['Flags_LP_n'] == 20) & (ne['Flags_LP_T_elec'] == 20)  # & (ne['Flags_LP'] == 1) 
     ne = {k: v[above_lat_cutoff & not_crazy & good_flags] for k, v in ne.items()}
     ne_df = pd.DataFrame(ne).set_index('Timestamp')
     return ne_df
