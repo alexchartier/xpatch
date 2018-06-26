@@ -30,15 +30,16 @@ import physics
 
 def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'], \
              drift_fin='./data/drifts_%s_to_%s.pkl', \
-          ne_fname_fmt=['./data/swarm_lp/SW_*EFI%s', '*%Y%m%d*.cdf'], \
+          ne_fname_fmt=['/Volumes/Seagate/data/swarm/lp/SW_*EFI%s', '*%Y%m%d*.cdf'], \
                 ne_fin='./data/ne_%s_to_%s.pkl', \
                 ct_fin='./data/swarm/proc_lp/alex/lp_%Y%m%d_55deg.pkl', \
                   sats=['A', 'B'], \
-             starttime=dt.datetime(2016, 1, 1), 
-               endtime=dt.datetime(2016, 2, 1), \
+             starttime=dt.datetime(2015, 7, 1), 
+               endtime=dt.datetime(2015, 8, 1), \
             lat_cutoff=0, \
          ):
 
+    """
     # Load electric fields
     drift_fname = drift_fin % (starttime.strftime('%Y%m%d'), endtime.strftime('%Y%m%d'))
     try:
@@ -55,6 +56,7 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
     efi_df = {}
     for sat in sats:  
         efi_df[sat] = efi_to_dataframe(efi[sat], lat_cutoff)
+    """
 
     # Load electron densities
     ne_fname = ne_fin % (starttime.strftime('%Y%m%d'), endtime.strftime('%Y%m%d'))
@@ -65,24 +67,29 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
         print("No preprocessed file found - loading ne")
         ne = {}
         for sat in sats:
-            ne[sat] = load_ne([ne_fname_fmt[0] % sat, ne_fname_fmt[1]], starttime, endtime)
+            ne[sat] = ne_to_dataframe(load_ne([ne_fname_fmt[0] % sat, ne_fname_fmt[1]], starttime, endtime))
+        """
         with open(ne_fname, 'wb') as f:
             pickle.dump(ne, f)  
-
-    ne_df = {}
-    for sat in sats:  
-        ne_df[sat] = ne_to_dataframe(ne[sat], lat_cutoff)
+        """
 
     # Load patch counts
     # patch_ct = get_patch_ct(starttime, endtime, sats, ct_fin)
 
+    # plot_lomb_scargle(ne['A'])
 
+    # plot_polar(ne['A'])
+  
+    plot_means(ne)
+ 
     # Spaghetti plots
-    plot_spaghetti(efi_df['A'], ne_df['A'])
+    # if False:
+    plot_many_spags([efi_df])
+    # plot_spaghetti(ne['A'])
 
     # Plot histogram of patch quantities vs. average quantities
     if False:
-        plot_hists(efi_df['A'], ne_df['A'], patch_ct['A'])
+        plot_hists(efi_df['A'], ne['A'], patch_ct['A'])
 
     if False:
         # Plot density timeseries and EFI timeseries
@@ -90,34 +97,112 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
         start_looktimes = [dt.datetime(2016, month, 1), dt.datetime(2016, month, 5), dt.datetime(2016, month, 10), \
                            dt.datetime(2016, month, 15), dt.datetime(2016, month, 20), dt.datetime(2016, month, 25)]
         for t in start_looktimes:
-            plot_dens_efi(efi_df['A'], ne_df['A'], patch_ct['A'], start_looktime=t)
+            plot_dens_efi(efi_df['A'], ne['A'], patch_ct['A'], start_looktime=t)
 
     if False:
         # Plot histogram of EFI values
         plot_drifts(efi_df)
 
 
-def plot_spaghetti(efi_df, ne_df):
+def plot_means(ne, lt=[12, 18], lon=[-120, -50], lat=[55, 65], sats='A', yvar='n', ylim=[0, 1E4]):
+
+    hems = {'north':'g', 'south':'b'}
+    for s in sats:
+        lts = np.array(ne[s].index.hour + ne[s].index.minute / 60 + ne[s]['Longitude'] * 24 / 360)
+        lts[lts > 24] -= 24
+        lts[lts < 0] += 24
+        ne[s]['LT'] = lts
+
+    nrows, ncols = len(sats), 1
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    try:
+        len(axes)
+    except:
+        axes = [axes]
+    ct = 0
+    inds = []
+    for s in sats:
+        lt_ind = (ne[s]['LT'] > lt[0]) & (ne[s]['LT'] < lt[1])
+        lon_ind = (ne[s]['Longitude'] > lon[0]) & (ne[s]['Longitude'] < lon[1])
+        ne[s][yvar] /= 1E5
+        for hem in hems.keys():
+            if hem == 'north':
+                latlim = lat
+            else:
+                latlim = -lat[1], -lat[0]
+            lat_ind = (ne[s]['lat_mag'] > latlim[0]) & (ne[s]['lat_mag'] < latlim[1])
+            try:
+                ne[s][lt_ind & lat_ind & lon_ind].rolling('86400s').sum().plot(y=yvar, marker='.', markersize=1, \
+                            c=hems[hem], label=hem, legend=False, linewidth=0, ylim=ylim, ax=axes[ct])
+            except:
+                None
+        ct += 1
+
+    for r in np.arange(nrows):
+        if r < nrows - 1:
+            axes[r].tick_params(labelbottom='off')
+            axes[r].set_xlabel('')
+        axes[r].set_ylabel('Swarm %s\n electrons / cm3' % sats[r])
+        axes[r].grid()
+        legend = axes[r].legend(frameon=True)
+        for legend_handle in legend.legendHandles:
+            legend_handle._legmarker.set_markersize(9)
+    plt.suptitle(ne[sats[0]].index[0].strftime('%b %Y'))
+
+    plt.show()
+
+
+
+def plot_many_spags(nes):
+    yvar = 'viy'
+    xvar = 'lat_mag'
+    xvarname = 'Magnetic Latitude (degrees)'
+    ylim = 0, 5000
+
+    nrows, ncols = len(nes[0]), len(nes)
+    fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
+    ct = 0
+    sats = 'A', 'B'
+    for ne in nes:
+        for s in sats:
+            # ne[s][yvar] /= 1E5
+            # ne[s]['LT'] = ne[s].index.hour + ne[s].index.minute / 60 + ne[s]['Longitude'] * 24 / 360
+            # ne[s]['LT'][ne[s]['LT'] > 24] = ne[s]['LT'][ne[s]['LT'] > 24] - 24
+            ne[s].plot(x=xvar, y=yvar, marker='.', markersize=0.1, c='k', legend=False, linewidth=0, ylim=ylim, ax=axes[ct])
+            ct += 1
+
+    for r in np.arange(nrows):
+        if r < nrows - 1:
+            axes[r].tick_params(labelbottom='off')
+            axes[r].set_xlabel('')
+        else:
+            axes[r].set_xlabel(xvarname)
+        axes[r].set_ylabel('Swarm %s\n 1E5 el. / cm3' % sats[r])
+        axes[r].grid()
+    plt.suptitle(ne[sats[0]].index[0].strftime('%b %Y'))
+
+    plt.show()
+
+    # for sat, data in ne.items():
+
+
+def plot_spaghetti(ne):
     xvar = 'lat_mag'
     ct = 0
-    nrows = 2
-    ncols = 2
+    pltvars = {'n':[0, 15], 'T_elec':[0, 14000]}#  {'n':[0, 20]}  # 
+    nrows = len(pltvars)
+    ncols = 1
     fig, axes = plt.subplots(nrows=nrows, ncols=ncols)
-    pltvars = {'n':[0, 1500000], 'T_elec':[0, 14000]}
+    ne['n'] /= 1E5
+    ne['LT'] = ne.index.hour + ne.index.minute / 60 + ne['Longitude'] * 24 / 360
+    ne['LT'][ne['LT'] > 24] = ne['LT'][ne['LT'] > 24] - 24
     for k, v in pltvars.items():
         c = 'k' if k == 'n' else 'r'
-        ne_df[ne_df['lat_mag'] > 0].plot(x=xvar, y=k, marker='.', markersize=0.1, c=c, legend=False, \
-                                        linewidth=0, ax=axes[ct, 0], ylim=v,)# xlim=[0, 24], )
+        ne.plot(x=xvar, y=k, marker='.', markersize=0.1, c=c, \
+                  legend=False, linewidth=0, ax=axes[ct], ylim=v)
         ct += 1
-    ct = 0
-    for k, v in pltvars.items():
-        c = 'k' if k == 'n' else 'r'
-        ne_df[ne_df['lat_mag'] < 0].plot(x=xvar, y=k, marker='.', markersize=0.1, c=c, legend=False, \
-                                        linewidth=0, ax=axes[ct, 1], ylim=v)# xlim=[0, 24], )
-        ct += 1
-    """
     efi_df['B'] = np.sqrt(efi_df['bx'] ** 2 + efi_df['by'] ** 2 + efi_df['bz'] ** 2)
-    efi_vars = {'abs_viy':[0, 5000], 'B':[30000, 55000]}
+    efi_vars = {'abs_viy':[0, 5000]} # , 'B':[30000, 55000]}
     for k, v in efi_vars.items():
         efi_df[efi_df['lat_mag'] > 0].plot(x=xvar, y=k, marker='.', markersize=0.1, legend=False, \
                                             linewidth=0, ax=axes[ct, 0], ylim=v)#, xlim=[0, 24])
@@ -126,24 +211,58 @@ def plot_spaghetti(efi_df, ne_df):
         if ct == 2:
             ct += 1
     
-    """
-    plt.suptitle(ne_df.index[0].strftime('%b %Y'))
-    ylabs = 'electrons / cm3', 'elec. temp (K)', 'abs. vel. (m/s)', 'B (nT)'
+    plt.suptitle(ne.index[0].strftime('%b %Y'))
+    ylabs = '1E5 el. / cm3', 'elec. temp (K)', 'abs. vel. (m/s)', 'B (nT)'
     hem = 'North', 'South'
     for r in np.arange(nrows):
-        for c in np.arange(ncols):
-            if r < nrows - 1:
-                axes[r, c].tick_params(labelbottom='off')
-                axes[r, c].set_xlabel('')
-            if r == 0:
-                axes[r, c].set_title(hem[c])
-            if c > 0:
-                axes[r, c].tick_params(labelleft='off')
-            else:
-                axes[r, c].set_ylabel(ylabs[r])
-            axes[r, c].grid()
+        if r < nrows - 1:
+            axes[r].tick_params(labelbottom='off')
+            axes[r].set_xlabel('')
+        axes[r].set_ylabel(ylabs[r])
+        axes[r].grid()
     plt.show()
 
+
+def plot_lomb_scargle(ne):
+    import scipy
+    ne = ne[ne['lat_mag'] < -70]
+    ne_dec = ne[::5]
+    periods = np.linspace(100, 2000, 2000) 
+    ang_sample_freqs = 2 * np.pi / periods
+    time_secs = (ne_dec.index - ne_dec.index[0]).total_seconds() 
+    dists = time_secs * 7.8
+    signal_subset = ne_dec['n']
+    pgram = scipy.signal.lombscargle(dists, signal_subset, ang_sample_freqs)
+    normalized_pgram = np.sqrt(4 * (pgram / signal_subset.shape[0]))
+
+    plt.figure(figsize=(14,4))
+    plt.plot(periods, normalized_pgram)
+    plt.xlabel('Scale size (km)')
+    plt.tight_layout()
+    plt.show()
+
+
+def plot_polar(ne):
+
+    # Calculate avg. magnetic field strength (or Ne variability etc) in a grid
+
+    """ 
+    theta = np.radians(azimuths)
+    zeniths = np.array(zeniths)
+ 
+    values = np.array(values)
+    values = values.reshape(len(azimuths), len(zeniths))
+ 
+    r, theta = np.meshgrid(zeniths, np.radians(azimuths))
+    fig, ax = subplots(subplot_kw=dict(projection='polar'))
+    ax.set_theta_zero_location("N")
+    ax.set_theta_direction(-1)
+    autumn()
+    cax = ax.contourf(theta, r, values, 30)
+    autumn()
+    cb = fig.colorbar(cax)
+    cb.set_label("Pixel reflectance")
+    """
 
 def plot_hists(efi_df, ne_df, patch_ct):
 
@@ -266,19 +385,31 @@ def load_ne(fname_format, starttime, endtime):
         'radius' in metres
         'mlt' magnetic local time (in hours)
     """
-    vars = 'Timestamp', 'Latitude', 'Longitude', 'n', 'T_elec', 'Flags_LP', 'Flags_LP_T_elec', 'Flags_LP_n'
-    ne = {v: [] for v in vars}
+    vars = 'Timestamp', 'Latitude', 'Longitude', 'n', 'T_elec', 
+    flags = 'Flags_LP', 'Flags_LP_T_elec', 'Flags_LP_n'
+    ne = {v: [] for v in vars + flags}
     time = starttime
     while time <= endtime:
+        print(time)
         try:
-            fin = pycdf.CDF(glob.glob(fname_format[0] + time.strftime(fname_format[1]))[0])
+            fin_fname = fname_format[0] + time.strftime(fname_format[1])
+            fin = pycdf.CDF(glob.glob(fin_fname)[0])
+        except:
+            print('No file matching %s' % fin_fname)
+        try:
             data = {v: fin[v][...] for v in vars}
+            for f in flags:
+                dflg = np.ones(fin['T_elec'].shape) * 20
+                try: 
+                    data[f] = fin[f][...]
+                except:  # The older files don't have error flags
+                    data[f] =  dflg
             for k, v in data.items():
                 ne[k].append(v) 
         except:
-            print(time.strftime('No file on %Y/%m/%d'))
+            print('Could not process file %s' % fin_fname)
         time += dt.timedelta(days=1)
-   
+     
     ne = {k: np.hstack(v) for k, v in ne.items()}
     return ne
 
@@ -310,16 +441,15 @@ def load_efi(fname_format, starttime, endtime):
     return efi
 
 
-def ne_to_dataframe(ne, lat_cutoff):
+def ne_to_dataframe(ne):
     try:
         ne['Latitude'] = ne['lat_geo']
     except:
         None
     ne['lat_mag'], ne['lon_mag'], ne['mlt'] = calc_mlt(ne['Latitude'], ne['Longitude'], ne['Timestamp'])
-    above_lat_cutoff = np.abs(ne['lat_mag']) >= lat_cutoff
     not_crazy = (ne['n'] < 1E8) & (ne['T_elec'] < 1E6)
     good_flags = (ne['Flags_LP_n'] == 20) & (ne['Flags_LP_T_elec'] == 20)  # & (ne['Flags_LP'] == 1) 
-    ne = {k: v[above_lat_cutoff & not_crazy & good_flags] for k, v in ne.items()}
+    ne = {k: v[not_crazy & good_flags] for k, v in ne.items()}
     ne_df = pd.DataFrame(ne).set_index('Timestamp')
     return ne_df
 

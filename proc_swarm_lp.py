@@ -3,8 +3,9 @@
 proc_swarm_lp.py
 Script to process the SWARM langmuir probe data and analyse for patches. 
 """
-from spacepy import pycdf
 import pdb
+from spacepy import pycdf
+import spacepy.coordinates as crd
 import numpy as np
 import scipy as sp
 import datetime as dt
@@ -13,16 +14,17 @@ import glob
 import pickle
 import sys 
 import collections
-sys.path.insert(0, '/Users/chartat1/fusionpp/fusion/')
-import physics
+import aacgmv2
+
+RAD_EARTH = 6371E3
 
 
 def main(ipath='./data/swarm_lp/',
          opath='./data/swarm/proc_lp/', 
-         time=dt.datetime(2016, 1, 1),
+         time=dt.datetime(2017, 1, 1),
          step=dt.timedelta(days=1),
-         endtime=dt.datetime(2017, 1, 1),
-         lat_cutoff=55,
+         endtime=dt.datetime(2018, 1, 1),
+         lat_cutoff=70,
          sats = ['A', 'B'],
          save=True,
          approach='alex'):
@@ -37,21 +39,21 @@ def main(ipath='./data/swarm_lp/',
         for sat in sats:
             print('\nSatellite %s' % sat)
             fname_format = ipath + 'SW_*_EFI%s' % sat + '*%Y%m%d*.cdf' 
-            try:
-                fname_str = glob.glob(time.strftime(fname_format))
-                if len(fname_str) == 0:
-                    print('No CDF file matching %s' % time.strftime(fname_format))
-                fname = fname_str[0]
-                vals[sat] = load_lp(fname)
-                vals[sat]['lt'] = localtime(vals[sat])
-                if approach == 'coley':
-                    patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
-                elif approach == 'alex':
-                    patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
-                else:
-                    patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
-            except:
-                print('Could not count patches for satellite %s on %s' % (sat, timestr))
+            #try:
+            fname_str = glob.glob(time.strftime(fname_format))
+            if len(fname_str) == 0:
+                print('No CDF file matching %s' % time.strftime(fname_format))
+            fname = fname_str[0]
+            vals[sat] = load_lp(fname)
+            vals[sat]['lt'] = localtime(vals[sat])
+            if approach == 'coley':
+                patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
+            elif approach == 'alex':
+                patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
+            else:
+                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
+            #except:
+            #    print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
             fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
@@ -65,7 +67,6 @@ def main(ipath='./data/swarm_lp/',
 
 def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pts=30, \
                             edge_mag=1.4, peak_f107_mult=1000, edge_pts=36, cutoff_crd='mag'):
-    # sys.path.insert(0, '/Users/chartat1/fusionpp/utilities/python/')
     from pyglow import pyglow
     # Specify cutoff value according to F10.7
     pt = pyglow.Point(vals['times'][0], 100, 0, 0)
@@ -74,12 +75,12 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
     assert not np.isnan(pt.f107a), 'F107a is NaN - stopping'
     peak_mag = pt.f107a * peak_f107_mult
 
-    # Count the patches from Langmuir probe data using Coley and Heelis (1995) approach
+    # Count the patches from Langmuir probe data 
     window = dt.timedelta(seconds=window_sec)  
     cadence = dt.timedelta(seconds=cadence_sec) 
 
     # Transform lats/lons to magnetic 
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
+    alts, vals['lat_mag'], vals['lon_mag'] = transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
                           np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
@@ -181,6 +182,7 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
         print('\nFound a patch')
         tind += sumind
 
+    print('4')
     # Count the patches f
     patch_ct['params'] = {'lat_cutoff': lat_cutoff,
                             'peak_mag': peak_mag,
@@ -199,11 +201,11 @@ def coley_patches(vals, lat_cutoff=70, window_sec=165, cadence_sec=0.5, filter_p
     cadence = dt.timedelta(seconds=cadence_sec) 
 
     # Transform lats/lons to magnetic 
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
+    alts, vals['lat_mag'], vals['lon_mag'] = transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
                           np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
-        
+
     # add random lowlevel noise to the ne_vals to compensate for their low numerical precision for the filter
     vals['ne'] += (np.random.rand(len(vals['ne'])) - 0.5) * 1E-5
 
@@ -482,6 +484,32 @@ def localtime(vals):
     lt[lt > 24] -= 24
     lt[lt < 0] += 24
     return lt 
+
+
+def transform(rads, lats, lons, from_=['GEO', 'sph'], to=['MAG', 'sph']):
+    # Convert 3D arrays (or vectors) from geographic to geomagnetic coordinates
+    # Function takes radians, meters; returns lats, lons
+    rads = np.array(rads)
+    lats = np.array(lats) 
+    lons = np.array(lons) 
+    assert ((rads.size == lats.size) and (rads.size == lons.size)), 'Inputs must have the same number of elements'
+    in_crd_array = np.array([np.ravel(rads / RAD_EARTH).tolist(), \
+                           np.ravel(np.rad2deg(lats)).tolist(), \
+                           np.ravel(np.rad2deg(lons)).tolist()]).T.tolist()
+   
+    in_crd_array = np.array(in_crd_array)
+    pdb.set_trace() 
+    aacgmv2.convert_latlon_arr(in_crd_array[:, 1], in_crd_array[:, 2], 100, dt.datetime(2015, 1, 1))
+    # in_crd = crd.Coords(in_crd_array, from_[0], from_[1])
+    in_crd.ticks = Ticktock(np.tile(['2014-12-31T12:00:00'], len(in_crd_array)), 'ISO')  # Needs a time to specify mag. field
+    out_crd = in_crd.convert(to[0], to[1]) 
+    out_alts = np.reshape(np.array(out_crd.data[:, 0]), rads.shape)
+    out_lats = np.reshape(np.array(out_crd.data[:, 1]), lats.shape)
+    out_lons = np.reshape(np.array(out_crd.data[:, 2]), lons.shape)
+    if to[1] == 'sph':
+        out_lats = np.deg2rad(out_lats)
+        out_lons = np.deg2rad(out_lons)
+    return out_alts, out_lats, out_lons
 
 
 if __name__ == '__main__':

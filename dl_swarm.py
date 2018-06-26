@@ -12,12 +12,11 @@ Swarm files:
 unzip files: 
 """
 import datetime, pdb, sys, os
-cwd = os.getcwd()
-sys.path.append(cwd + '/../fusionpp/glimpse/')
-import downloader
+sys.path.append('/Users/chartat1/fusionpp/src/data_prep/gps/')
+from get_gps_data import dl_data
 
 instrument = 'lp'
-dl_times = [datetime.datetime(2016, 1, 1), datetime.datetime(2016, 12, 31)]
+dl_times = [datetime.datetime(2017, 4, 1), datetime.datetime(2018, 1, 1)]
 
 if instrument == 'gps':
     servername = 'data/swarm_server_names.txt'
@@ -35,7 +34,7 @@ elif instrument == 'efi':
     servername = 'data/swarm_efi.txt'
     dl_dir = '/Volumes/Seagate/data/swarm_efi/'
 
-dl_days = downloader.dl_data(dl_times, dl_dir, servername, datatype='swarm', dirnames='not_smart')
+dl_days = dl_data(dl_times[0], dl_times[1], dl_dir, servername, datatype='swarm', dirnames='not_smart')
 
 
 
