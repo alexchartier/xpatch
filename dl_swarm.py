@@ -12,8 +12,7 @@ Swarm files:
 unzip files: 
 """
 import datetime, pdb, sys, os
-sys.path.append('/Users/chartat1/fusionpp/src/data_prep/gps/')
-from get_gps_data import dl_data
+from dl_data import dl_data
 
 instrument = 'lp'
 dl_times = [datetime.datetime(2017, 4, 1), datetime.datetime(2018, 1, 1)]
