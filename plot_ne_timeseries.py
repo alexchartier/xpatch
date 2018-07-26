@@ -9,7 +9,6 @@ import pickle
 import sys 
 import collections
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
-import physics
 import proc_swarm_lp
 import matplotlib
 import matplotlib.dates as mdates

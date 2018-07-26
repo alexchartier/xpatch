@@ -16,7 +16,6 @@ import pickle
 import sys 
 import collections
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
-import physics
 import socket
 import proc_swarm_lp
 
@@ -190,7 +189,7 @@ def calc_bkgd_dens(fname, lat_cutoff=55):
 def get_swarm_vals(fname):
     vals = proc_swarm_lp.load_lp(fname)
     # Transform lats/lons to magnetic 
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
+    alts, vals['lat_mag'], vals['lon_mag'] = proc_swarm_lp.transform(vals['rad'], np.deg2rad(vals['lat_geo']), \
                           np.deg2rad(vals['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi

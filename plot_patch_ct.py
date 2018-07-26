@@ -13,20 +13,20 @@ import numpy as np
 import socket
 import sys
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
-import physics
 import count_passes
+import proc_swarm_lp
 
-starttime = dt.datetime(2014, 1, 1)
-endtime = dt.datetime(2017, 1, 1)
+starttime = dt.datetime(2017, 1, 1)
+endtime = dt.datetime(2018, 1, 1)
 satellites = 'A', 'B'
 
-lat_cutoff = 55
+lat_cutoff = 70
 approach = 'alex'
 instrument = 'Langmuir Probe'  # or 'GPS'
 
 # Langmuir Probe
 if instrument == 'Langmuir Probe':
-    fin = '/Volumes/Seagate/data/swarm/proc_lp/%s/%i_deg/' % (approach, lat_cutoff) \
+    fin = 'data/swarm/proc_lp/%s/' % (approach) \
           + 'lp_%Y%m%d_' + '%ideg.pkl' % lat_cutoff    
     norm_fin = '/Volumes/Seagate/data/swarm/pass_ct/pass_norm_%Y%m%d' + '_%ideg.pkl' % lat_cutoff
     colour = 'g'
@@ -53,7 +53,7 @@ def main():
                     patch_ct[sat][key] = np.array(val)[elev_ind]
     else:
         for sat in satellites:
-            alts, patch_ct[sat]['lat_mag'], patch_ct[sat]['lon_mag'] = physics.transform(patch_ct[sat]['rad'], np.deg2rad(patch_ct[sat]['lat_geo']), \
+            alts, patch_ct[sat]['lat_mag'], patch_ct[sat]['lon_mag'] = proc_swarm_lp.transform(patch_ct[sat]['rad'], np.deg2rad(patch_ct[sat]['lat_geo']), \
                       np.deg2rad(patch_ct[sat]['lon_geo']), from_=['GEO', 'sph'], to=['MAG', 'sph'])
 
             patch_ct[sat]['lat_mag'], patch_ct[sat]['lon_mag'] = np.rad2deg(patch_ct[sat]['lat_mag']), np.rad2deg(patch_ct[sat]['lon_mag'])
@@ -428,11 +428,11 @@ def plot_polar(patch_ct, crd='mag'):
         if crd == 'mag':
             lats = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lat_mag'])))
             lons = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lon_mag'])))
-            unused_alts, pole_lat, pole_lon = physics.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['GEO', 'sph'], to=['MAG', 'sph'])
+            unused_alts, pole_lat, pole_lon = proc_swarm_lp.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['GEO', 'sph'], to=['MAG', 'sph'])
         elif crd == 'geo':
             lats = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lat_geo'])))
             lons = np.deg2rad(np.squeeze(np.array(patch_ct[sat]['lon_geo'])))
-            unused_alts, pole_lat, pole_lon = physics.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['MAG', 'sph'], to=['GEO', 'sph'])
+            unused_alts, pole_lat, pole_lon = proc_swarm_lp.transform([1, 1], np.deg2rad([90, -90]), [0, 0], from_=['MAG', 'sph'], to=['GEO', 'sph'])
         pole_lat[1] = - pole_lat[1]
         lons[lons < 0] += 2 * np.pi
        

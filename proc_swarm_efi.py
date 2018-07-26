@@ -25,7 +25,6 @@ import collections
 from spacepy import pycdf
 from plot_patch_ct import get_patch_ct
 import proc_swarm_lp
-import physics
 
 
 def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'], \
@@ -482,7 +481,7 @@ def list_matching(list1, list2):
 
 
 def calc_mlt(lat, lon, time):
-    alts, mlat, mlon = physics.transform(lat * 0 + 1, \
+    alts, mlat, mlon = proc_swarm_lp.transform(lat * 0 + 1, \
                                          np.deg2rad(lat), \
                                          np.deg2rad(lon), \
                                          from_=['GEO', 'sph'], to=['MAG', 'sph']) 

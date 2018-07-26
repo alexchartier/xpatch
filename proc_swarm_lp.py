@@ -6,6 +6,7 @@ Script to process the SWARM langmuir probe data and analyse for patches.
 import pdb
 from spacepy import pycdf
 import spacepy.coordinates as crd
+from spacepy.time import Ticktock
 import numpy as np
 import scipy as sp
 import datetime as dt
@@ -14,14 +15,13 @@ import glob
 import pickle
 import sys 
 import collections
-import aacgmv2
 
 RAD_EARTH = 6371E3
 
 
 def main(ipath='./data/swarm_lp/',
          opath='./data/swarm/proc_lp/', 
-         time=dt.datetime(2017, 1, 1),
+         time=dt.datetime(2017, 4, 30),
          step=dt.timedelta(days=1),
          endtime=dt.datetime(2018, 1, 1),
          lat_cutoff=70,
@@ -39,21 +39,21 @@ def main(ipath='./data/swarm_lp/',
         for sat in sats:
             print('\nSatellite %s' % sat)
             fname_format = ipath + 'SW_*_EFI%s' % sat + '*%Y%m%d*.cdf' 
-            #try:
-            fname_str = glob.glob(time.strftime(fname_format))
-            if len(fname_str) == 0:
-                print('No CDF file matching %s' % time.strftime(fname_format))
-            fname = fname_str[0]
-            vals[sat] = load_lp(fname)
-            vals[sat]['lt'] = localtime(vals[sat])
-            if approach == 'coley':
-                patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
-            elif approach == 'alex':
-                patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
-            else:
-                patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
-            #except:
-            #    print('Could not count patches for satellite %s on %s' % (sat, timestr))
+            try:
+                fname_str = glob.glob(time.strftime(fname_format))
+                if len(fname_str) == 0:
+                    print('No CDF file matching %s' % time.strftime(fname_format))
+                fname = fname_str[0]
+                vals[sat] = load_lp(fname)
+                vals[sat]['lt'] = localtime(vals[sat])
+                if approach == 'coley':
+                    patch_ct[sat] = coley_patches(vals[sat], lat_cutoff=lat_cutoff)
+                elif approach == 'alex':
+                    patch_ct[sat] = alex_patches(vals[sat], lat_cutoff=lat_cutoff)
+                else:
+                    patch_ct[sat] = count_patches(vals[sat], cutoff_crd=cutoff_crd, lat_cutoff=lat_cutoff)
+            except:
+                print('Could not count patches for satellite %s on %s' % (sat, timestr))
 
         if save:
             fout = opath + approach + time.strftime('/lp_%Y%m%d_') + '%ideg.pkl' % lat_cutoff
@@ -70,8 +70,6 @@ def alex_patches(vals, lat_cutoff=55, window_sec=200, cadence_sec=0.5, filter_pt
     from pyglow import pyglow
     # Specify cutoff value according to F10.7
     pt = pyglow.Point(vals['times'][0], 100, 0, 0)
-    if np.isnan(pt.f107a):
-        print('F107a is NaN - stopping')
     assert not np.isnan(pt.f107a), 'F107a is NaN - stopping'
     peak_mag = pt.f107a * peak_f107_mult
 
@@ -498,8 +496,6 @@ def transform(rads, lats, lons, from_=['GEO', 'sph'], to=['MAG', 'sph']):
                            np.ravel(np.rad2deg(lons)).tolist()]).T.tolist()
    
     in_crd_array = np.array(in_crd_array)
-    pdb.set_trace() 
-    # aacgmv2.convert_latlon_arr(in_crd_array[:, 1], in_crd_array[:, 2], 100, dt.datetime(2015, 1, 1))
     in_crd = crd.Coords(in_crd_array, from_[0], from_[1])
     in_crd.ticks = Ticktock(np.tile(['2014-12-31T12:00:00'], len(in_crd_array)), 'ISO')  # Needs a time to specify mag. field
     out_crd = in_crd.convert(to[0], to[1]) 
