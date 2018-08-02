@@ -63,8 +63,6 @@ def main():
                 print(key)
                 patch_ct[sat][key] = np.array(patch_ct[sat][key])
                 # patch_ct[sat][key] = np.array(val)
-        
-            
             
     # norm_ct = count_passes.get_norm_ct(norm_fin, starttime=starttime, endtime=endtime, sats=satellites)
     # plot_t_doy(patch_ct, norm_ct, vartype='lt')

@@ -14,7 +14,6 @@ import glob
 import pickle
 import sys 
 import collections
-import aacgmv2
 
 RAD_EARTH = 6371E3
 
@@ -498,8 +497,6 @@ def transform(rads, lats, lons, from_=['GEO', 'sph'], to=['MAG', 'sph']):
                            np.ravel(np.rad2deg(lons)).tolist()]).T.tolist()
    
     in_crd_array = np.array(in_crd_array)
-    pdb.set_trace() 
-    # aacgmv2.convert_latlon_arr(in_crd_array[:, 1], in_crd_array[:, 2], 100, dt.datetime(2015, 1, 1))
     in_crd = crd.Coords(in_crd_array, from_[0], from_[1])
     in_crd.ticks = Ticktock(np.tile(['2014-12-31T12:00:00'], len(in_crd_array)), 'ISO')  # Needs a time to specify mag. field
     out_crd = in_crd.convert(to[0], to[1]) 
