@@ -16,7 +16,7 @@ import pickle
 import sys 
 import collections
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
-import physics
+import proc_swarm_lp
 import socket
 
 
@@ -197,11 +197,11 @@ def get_swarm_vals(fname):
     vals, vars = load_swarm(fname)
     # Preliminary calculations
     rad = np.sqrt(np.sum(vals['leo_pos'] ** 2, axis=1))
-    unused_alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(rad, vals['lat_geo'] * np.pi / 180, \
+    unused_alts, vals['lat_mag'], vals['lon_mag'] = proc_swarm_lp.transform(rad, vals['lat_geo'] * np.pi / 180, \
                           vals['lon_geo'] * np.pi / 180, from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lat_mag'] *= 180 / np.pi
     vals['lon_mag'] *= 180 / np.pi
-    vals['elev'] = physics.elevation(vals['gps_pos'], vals['leo_pos']) * 180 / np.pi
+    vals['elev'] = proc_swarm_lp.elevation(vals['gps_pos'], vals['leo_pos']) * 180 / np.pi
     new_vars = 'lat_mag', 'lon_mag', 'elev'
     vars.update(dict(zip(new_vars, new_vars)))
     return vals, vars

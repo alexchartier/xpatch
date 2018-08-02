@@ -11,7 +11,6 @@ import numpy as np
 import socket
 import sys 
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
-import physics
 import count_passes
 import plot_patch_ct
 

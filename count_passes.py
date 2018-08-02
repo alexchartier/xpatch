@@ -16,7 +16,6 @@ import sys
 import collections
 import proc_swarm_lp
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
-import physics
 import plot_patch_ct
 
 def main(ipath='/Volumes/Seagate/data/swarm/lp/',
@@ -128,7 +127,7 @@ def norm_passes(vals, lat_cutoff=70,
     vals['lat_geo'] *= np.pi / 180 
     vals['lon_geo'][vals['lon_geo'] < 0] += 360 
     vals['lon_geo'] *= np.pi / 180 
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'], \
+    alts, vals['lat_mag'], vals['lon_mag'] = proc_swarm_lp.transform(vals['rad'], vals['lat_geo'], \
                           vals['lon_geo'], from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lon_mag'][vals['lon_mag'] < 0] += 2 * np.pi
     vals['lon_geo'][vals['lon_geo'] < 0] += 2 * np.pi
@@ -160,7 +159,7 @@ def count_passes(vals, crdtype='mag'):
     vals['lat_geo'] *= np.pi / 180
     vals['lon_geo'][vals['lon_geo'] < 0] += 360
     vals['lon_geo'] *= np.pi / 180
-    alts, vals['lat_mag'], vals['lon_mag'] = physics.transform(vals['rad'], vals['lat_geo'], \
+    alts, vals['lat_mag'], vals['lon_mag'] = proc_swarm_lp.transform(vals['rad'], vals['lat_geo'], \
                           vals['lon_geo'], from_=['GEO', 'sph'], to=['MAG', 'sph'])
     vals['lon_mag'][vals['lon_mag'] < 0] += 2 * np.pi
     
