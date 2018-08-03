@@ -36,11 +36,6 @@ class downloader(object):
 
    def setSysCommands(self, bin_dir):
       self.SysCommands = {}
-      glimpsebase = os.getenv("GLIMPSEBASE")
-      if glimpsebase == None:
-          print("ERROR: GLIMPSEBASE environement variable not set")
-          print("   Please set and try again")
-          return
 
       # -r: recursive, -nv: non-verbose, -nd: no directory structure, -N: only download if newer
       # Reject md5 files - don't know what they are, but I don't want them.
@@ -94,7 +89,6 @@ class downloader(object):
 
       for date in days:
          for path in server.DataPaths:
-            path = path.replace('{GPSW}', str(gpsWeek(date.year, date.month, date.day)))
             for pattern in server.Pattern:
                Cmd = Command + '-A ' + date.strftime(pattern) + ' -P ' + self.outputDirectory 
                if self.dirnames == 'smart':

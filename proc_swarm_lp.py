@@ -4,7 +4,6 @@ proc_swarm_lp.py
 Script to process the SWARM langmuir probe data and analyse for patches. 
 """
 import pdb
-from spacepy import pycdf
 import spacepy.coordinates as crd
 from spacepy.time import Ticktock
 import numpy as np
@@ -449,26 +448,26 @@ def load_lp(fname):
     """
     Load the Swarm langmuir probe data
     """ 
+    from spacepy import pycdf
     cdf = pycdf.CDF(fname)
-    vars = {'Latitude': 'lat_geo',   # Geographic latitude
-            'Longitude': 'lon_geo',  # geographic longitude
-            'Diplat': 'Diplat', 
-            'Diplon': 'Diplon', 
-            'MLat': 'AACGMLat', 
-            'MLon': 'AACGMLon', 
-            'Radius': 'rad',  # Radial distance
-            'n': 'ne',  # Electron density
-            'Timestamp': 'times',  # Datetime times
-            'T_elec': 'T_elec',  # Electron temp.
-            }   
+    swarm_vars = {'Latitude': 'lat_geo',   # Geographic latitude
+                  'Longitude': 'lon_geo',  # Geographic longitude
+                  'Diplat': 'Diplat', 
+                  'Diplon': 'Diplon', 
+                  'MLat': 'AACGMLat', 
+                  'MLon': 'AACGMLon', 
+                  'Radius': 'rad',  # Radial distance
+                  'n': 'ne',  # Electron density
+                  'Timestamp': 'times',  # Datetime times
+                  'T_elec': 'T_elec',  # Electron temp.
+                  }   
     vals = {}
         
-    for key, val in vars.items():
+    for key, val in swarm_vars.items():
         try:
             vals[val] = cdf[key][...]
         except:
             None
-
     return vals
 
 

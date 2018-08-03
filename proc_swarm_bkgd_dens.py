@@ -4,7 +4,6 @@ proc_swarm_bkgd_dens.py
 Script to process the SWARM electron density data and get the average background value each day
 
 """
-from spacepy import pycdf
 import pdb
 import numpy as np
 import scipy as sp
@@ -18,17 +17,63 @@ import collections
 sys.path.insert(0, '/users/chartat1/fusionpp/fusion/')
 import socket
 import proc_swarm_lp
+from scipy import stats
 
 
-def main(save=True, plot=True):
-    time=dt.datetime(2014, 8, 1)
-    endtime=dt.datetime(2017, 6, 29)
-
+def main(
+        save=True, 
+        plot=False,
+        time=dt.datetime(2016, 6, 1),
+        endtime=dt.datetime(2018, 8, 1),
+        datapath='/media/alex/Seagate/data/swarm/lp/',
+        out_type='lat_bin',
+        procpath=['data/swarm/proc_latbin_dens/%s', '_dens_%Y%m%d.pkl'],
+        ):
+    procpath = procpath[0] % out_type + procpath[1]
+    lat_bins = np.arange(-90, 91, 5)
     if save:
-        save_bkgd_dens(time=time, endtime=endtime)
+        save_bkgd_dens(ipath=datapath, opath=procpath, 
+                time=time, endtime=endtime, lat_bins=lat_bins, out_type=out_type)
 
     if plot:
-        plot_bkgd_dens(time=time, endtime=endtime)
+        if out_type == 'lat_bin':
+            plot_avg_dens(procpath, time, endtime, lat_bins, sats=['A', 'B'])
+        else:
+            plot_bkgd_dens(ipath=procpath, time=time, endtime=endtime)
+
+
+def plot_avg_dens(
+                  ipath, starttime, endtime, lat_bins, sats=['A', 'B'], 
+                ):
+    # Calculate timeseries 
+    times = []
+    time = starttime
+    while time <= endtime:
+        times.append(time)
+        time += dt.timedelta(days=1)
+
+    # set up holder
+    lat_c = (lat_bins[:-1] + lat_bins[1:]) / 2
+    dens_ts = {}
+    for sat in sats: 
+       dens_ts[sat] = np.zeros((len(times), len(lat_bins) - 1)) * np.nan
+   
+    # Load files 
+    for tind, time in enumerate(times):
+        print(time)
+        with open(time.strftime(ipath), 'rb') as f: 
+            bkgd_dens = pickle.load(f)
+        for sat in sats: 
+            try:
+                dens_ts[sat][tind, :] = bkgd_dens[sat][0]
+            except:
+                print('Failed to load %s' % sat)
+    
+    for satind, sat in enumerate(sats):
+        plt.subplot(len(sats), 1, satind + 1)
+        plt.pcolor(times, lat_c, dens_ts[sat].T)
+    plt.show()
+    
 
 
 def plot_bkgd_dens(
@@ -40,14 +85,14 @@ def plot_bkgd_dens(
                   hems=['nh', 'sh'],
                   ):
  
-
     # set up holder
     dens_ts = {}
     for sat in sats: 
        dens_ts[sat] = {}
        for hem in hems: 
            dens_ts[sat][hem] = []
-    
+   
+    # Load files 
     t = time
     times = []
     while t <= endtime:
@@ -128,10 +173,11 @@ def save_bkgd_dens(
                   step=dt.timedelta(days=1),
                   endtime=dt.datetime(2016, 2, 1),
                   sats=['A', 'B'],
+                  ipath='/Volumes/Seagate/data/swarm/lp/',
+                  opath='/Volumes/Seagate/data/swarm/proc_bkgd_dens/',
+                  out_type='lat_bin',
+                  lat_bins=None,
                   ):
-
-    ipath = '/Volumes/Seagate/data/swarm/lp/'
-    opath = '/Volumes/Seagate/data/swarm/proc_bkgd_dens/'
     
     while time <= endtime: 
         timestr = time.strftime('%Y-%m-%d')
@@ -147,14 +193,39 @@ def save_bkgd_dens(
             except:
                 print('No file for satellite %s on %s' % (sat, timestr))
                 continue
-            bkgd_dens[sat] = calc_bkgd_dens(fname)
+        
+            if out_type == 'bkgd':
+                bkgd_dens[sat] = calc_bkgd_dens(fname)
+            elif out_type == 'lat_bin':
+                try:
+                    bkgd_dens[sat] = calc_avg_dens(fname, lat_bins, lt_lim=[12, 18])
+                except:
+                    pdb.set_trace()
+                    print('Could not process satellite %s on %s' % (sat, timestr))
+                    bkgd_dens[sat] = np.ones((2, len(lat_bins) - 1)) * np.nan
 
-        fout = opath + time.strftime('bkgd_dens_%Y%m%d.pkl')
+        fout = time.strftime(opath)
         with open(fout, 'wb') as f:
             pickle.dump(bkgd_dens, f) 
         print('Saving %s' % fout)
 
         time += dt.timedelta(days=1)
+
+
+def calc_avg_dens(fname, latbins, lt_lim=[12, 18]):
+    # Calculate the latitude-binned mean density  each day
+    vals = get_swarm_vals(fname)
+    try:
+        vals['Diplat'] = vals['lat_mag']
+    except:
+        None
+    ut = np.array([(t.hour + t.minute / 60) for t in vals['times']])
+    lt = ut + vals['lon_geo'] / 360 * 24 
+    lt[lt < 0] += 24
+    lt[lt >= 24] -= 24
+    lt_ind = (lt > lt_lim[0]) & (lt < lt_lim[1])
+    bin_avg = stats.binned_statistic(vals['Diplat'][lt_ind], vals['ne'][lt_ind], bins=latbins)
+    return bin_avg
 
 
 def calc_bkgd_dens(fname, lat_cutoff=55):
