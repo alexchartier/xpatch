@@ -1,3 +1,8 @@
+"""
+ampere_tk.py
+Created by Alex Chartier on 8/13/2018
+"""
+
 import pdb
 import pickle
 import numpy as np
