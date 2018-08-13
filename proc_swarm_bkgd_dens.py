@@ -21,11 +21,11 @@ from scipy import stats
 
 
 def main(
-        save=True, 
-        plot=False,
-        time=dt.datetime(2016, 6, 1),
+        save=False, 
+        plot=True,
+        time=dt.datetime(2014, 8, 1),
         endtime=dt.datetime(2018, 8, 1),
-        datapath='/media/alex/Seagate/data/swarm/lp/',
+        datapath='data/swarm/lp/',
         out_type='lat_bin',
         procpath=['data/swarm/proc_latbin_dens/%s', '_dens_%Y%m%d.pkl'],
         ):
@@ -71,7 +71,9 @@ def plot_avg_dens(
     
     for satind, sat in enumerate(sats):
         plt.subplot(len(sats), 1, satind + 1)
+        pdb.set_trace()
         plt.pcolor(times, lat_c, dens_ts[sat].T)
+        plt.clim([0, 2E6])
     plt.show()
     
 
