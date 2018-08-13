@@ -6,6 +6,7 @@ Created by Alex Chartier on 8/13/2018
 import pdb
 import pickle
 import numpy as np
+import matplotlib.pyplot as plt
 import datetime as dt
 
 
@@ -18,27 +19,28 @@ def main(
     ):
 
     time = starttime
+    rms_B = {'north': [], 'south': []}
     while time <= endtime:
-        ncdf4_to_pkl(time.strftime(in_fname), time.strftime(out_fname))    
-        print('saved %s' % time.strftime(out_fname))
+        try:
+            with open(time.strftime(out_fname), 'rb') as f:
+                data = pickle.load(f)
+        except:
+            data = ncdf4_to_pkl(time.strftime(in_fname), time.strftime(out_fname))    
+            print('saved %s' % time.strftime(out_fname))
+
+        for hem in rms_B.keys():
+            rms_B[hem].append(rms(data['b_eci']))
         time += timestep 
     
-    with open(out_fname, 'rb') as f:
-        data = pickle.load(f)
-
-    rms_curr_dens = rmse(data['b_eci'])
-    pdb.set_trace()
-    plot_currents(data)
-    
+    plt.plot(rms_B)
+    plt.show() 
 
 
-def rmse(var):
+def rms(var):
     return np.sqrt(np.mean(var ** 2))
 
 
 def plot_currents(data):
-    import matplotlib.pyplot as plt
-    from matplotlib import cm
     plt.polar() 
     plt.tricontourf(data['mlt'][0, :], data['colat'][0, :], data['Jr'][0, :], cmap='bwr', vmin=-1, vmax=1)
     plt.colorbar() 
@@ -55,6 +57,7 @@ def ncdf4_to_pkl(in_fname, out_fname):
 
     with open(out_fname, 'wb') as f:
         pickle.dump(data, f)
+    return data
 
 
 if __name__ == '__main__':
