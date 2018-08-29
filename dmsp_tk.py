@@ -44,8 +44,6 @@ def main(
 """
 
 
-
-
 def preproc_data(
         sat='17',
         in_fname=['./data/dmsp/dms_%Y%m%d',  '_%ss1.001.hdf5'],
@@ -78,8 +76,6 @@ def preproc_data(
             print(time.strftime('Could not load data for %Y %b %d'))
             continue
     
-        pdb.set_trace()
-
         bn_vals = binned_vals(vals)
 
         if time == starttime:
@@ -88,8 +84,6 @@ def preproc_data(
         else:
             for k in needed_vars:
                 all_vals[k] = np.append(all_vals[k], vals[k])
-
-
 
     with open(full_pkl_fname, 'wb') as f:
         print('writing file to full_pklk_fname')

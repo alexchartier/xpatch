@@ -33,12 +33,11 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
                 ne_fin='./data/ne_%s_to_%s.pkl', \
                 ct_fin='./data/swarm/proc_lp/alex/lp_%Y%m%d_55deg.pkl', \
                   sats=['A', 'B'], \
-             starttime=dt.datetime(2015, 7, 1), 
-               endtime=dt.datetime(2015, 8, 1), \
+             starttime=dt.datetime(2016, 1, 1), 
+               endtime=dt.datetime(2016, 2, 1), \
             lat_cutoff=0, \
          ):
 
-    """
     # Load electric fields
     drift_fname = drift_fin % (starttime.strftime('%Y%m%d'), endtime.strftime('%Y%m%d'))
     try:
@@ -67,10 +66,9 @@ def main(efi_fname_fmt=['./data/swarm_efi/SW_EXPT_EFI%s', '_TIICT_%Y%m%d*.cdf'],
         ne = {}
         for sat in sats:
             ne[sat] = ne_to_dataframe(load_ne([ne_fname_fmt[0] % sat, ne_fname_fmt[1]], starttime, endtime))
-        """
-        with open(ne_fname, 'wb') as f:
-            pickle.dump(ne, f)  
-        """
+        #with open(ne_fname, 'wb') as f:
+        #    pickle.dump(ne, f)  
+    """
 
     # Load patch counts
     # patch_ct = get_patch_ct(starttime, endtime, sats, ct_fin)
