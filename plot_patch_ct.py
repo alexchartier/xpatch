@@ -16,8 +16,8 @@ sys.path.insert(0, '/users/chartat1/fusionpp/fusion')
 import count_passes
 import proc_swarm_lp
 
-starttime = dt.datetime(2017, 1, 1)
-endtime = dt.datetime(2018, 1, 1)
+starttime = dt.datetime(2014, 1, 1)
+endtime = dt.datetime(2014, 2, 1)
 satellites = 'A', 'B'
 
 lat_cutoff = 70
