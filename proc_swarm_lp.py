@@ -18,15 +18,17 @@ import collections
 RAD_EARTH = 6371E3
 
 
-def main(ipath='./data/swarm_lp/',
-         opath='./data/swarm/proc_lp/', 
-         time=dt.datetime(2017, 4, 30),
-         step=dt.timedelta(days=1),
-         endtime=dt.datetime(2018, 1, 1),
-         lat_cutoff=70,
-         sats = ['A', 'B'],
-         save=True,
-         approach='alex'):
+def main(
+    ipath='./data/swarm_lp/',
+    opath='./data/swarm/proc_lp/', 
+    time=dt.datetime(2017, 4, 30),
+    step=dt.timedelta(days=1),
+    endtime=dt.datetime(2018, 1, 1),
+    lat_cutoff=70,
+    sats = ['A', 'B'],
+    save=True,
+    approach='alex',
+):
    
     print(approach) 
     while time <= endtime: 
@@ -450,19 +452,21 @@ def load_lp(fname):
     """ 
     from spacepy import pycdf
     cdf = pycdf.CDF(fname)
-    swarm_vars = {'Latitude': 'lat_geo',   # Geographic latitude
-                  'Longitude': 'lon_geo',  # Geographic longitude
-                  'Diplat': 'Diplat', 
-                  'Diplon': 'Diplon', 
-                  'MLat': 'AACGMLat', 
-                  'MLon': 'AACGMLon', 
-                  'Radius': 'rad',  # Radial distance
-                  'n': 'ne',  # Electron density
-                  'Timestamp': 'times',  # Datetime times
-                  'T_elec': 'T_elec',  # Electron temp.
-                  }   
+    swarm_vars = {
+        'Latitude': 'lat_geo',   # Geographic latitude
+        'Longitude': 'lon_geo',  # Geographic longitude
+        'Diplat': 'Diplat', 
+        'Diplon': 'Diplon', 
+        'MLat': 'AACGMLat', 
+        'MLon': 'AACGMLon', 
+        'Radius': 'rad',  # Radial distance
+        #'n': 'ne',  # Electron density
+        'Ne': 'ne',  # Electron density
+        'Timestamp': 'times',  # Datetime times
+        'T_elec': 'T_elec',  # Electron temp.
+    }   
     vals = {}
-        
+    
     for key, val in swarm_vars.items():
         try:
             vals[val] = cdf[key][...]

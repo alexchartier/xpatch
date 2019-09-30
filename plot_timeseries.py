@@ -15,15 +15,15 @@ import socket
 
 
 def main(
-        starttime = dt.datetime(2014, 12, 21, 19, 0), 
-          endtime = dt.datetime(2014, 12, 21, 19, 20),
-        # starttime = dt.datetime(2016, 5, 8, 16, 37, 10),
-        #   endtime = dt.datetime(2016, 5, 8, 17, 0, 0),
-              sats=['A'],
-        instrument='GPS',
-          approach='coley',
-           procgps=False,
-         ):
+    starttime = dt.datetime(2014, 12, 21, 19, 0), 
+    endtime = dt.datetime(2014, 12, 21, 19, 20),
+    # starttime = dt.datetime(2016, 5, 8, 16, 37, 10),
+    #   endtime = dt.datetime(2016, 5, 8, 17, 0, 0),
+    sats=['A'],
+    instrument='GPS',
+    approach='coley',
+    procgps=False,
+):
 
     # Langmuir Probe
     if instrument == 'Langmuir Probe':
@@ -137,10 +137,12 @@ def plot_tec_timeseries(patch_ct, vals, sat='B', \
     plt.show()
 
  
-def plot_ne_timeseries(patch_ct, vals, sat='B', \
-                                       lat_cutoff=55, \
-                                       start=dt.datetime(2015, 12, 20, 16, 35), \
-                                       stop=dt.datetime(2015, 12, 20, 17, 5)):
+def plot_ne_timeseries(patch_ct, vals, 
+    sat='B',
+    lat_cutoff=55,
+    start=dt.datetime(2015, 12, 20, 16, 35),
+    stop=dt.datetime(2015, 12, 20, 17, 5),
+):
     ut = np.array([t for t in vals[sat]['times']])
     mlat = vals[sat]['lat_mag']
     timeind = np.logical_and(ut > start, ut < stop)

@@ -12,6 +12,7 @@
 
 # Server
 
-esa_lp, ftp://swarm-diss.eo.esa.int/, /Level1b/Entire_mission_data/EFIx_PL/Sat_A/ ; /Level1b/Entire_mission_data/EFIx_PL/Sat_B/ ; /Level1b/Entire_mission_data/EFIx_PL/Sat_C/ , *%Y%m%d*.ZIP, swarm0522, nducadia13
+esa_lp, ftp://swarm-diss.eo.esa.int/, /Level1b/Entire_mission_data/EFIx_LP/Sat_A/ ; /Level1b/Entire_mission_data/EFIx_LP/Sat_B/ , *%Y%m%d*.ZIP, swarm0522, nducadia13
 
 
+# esa_lp, ftp://swarm-diss.eo.esa.int/, /Level1b/Entire_mission_data/EFIx_LP/Sat_A/ ; /Level1b/Entire_mission_data/EFIx_LP/Sat_B/ ; /Level1b/Entire_mission_data/EFIx_PL/Sat_C/ , *%Y%m%d*.ZIP, swarm0522, nducadia13

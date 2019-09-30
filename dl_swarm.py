@@ -15,7 +15,7 @@ import datetime, pdb, sys, os
 from dl_data import dl_data
 
 instrument = 'lp'
-dl_times = [datetime.datetime(2014, 8, 1), datetime.datetime(2018, 8, 1)]
+dl_times = [datetime.datetime(2019, 2, 27), datetime.datetime(2019, 3, 14)]
 
 if instrument == 'gps':
     servername = 'data/swarm_server_names.txt'
